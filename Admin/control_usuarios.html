@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Control de usuarios</title>
+  <style>
+    :root{
+      --bg:#eef5fa;--panel:#fff;--text:#062b49;--muted:#6d8497;--brand:#0b7db2;--brand2:#0f9ccc;--line:#d5e3ec;
+      --ok:#008060;--warn:#b7791f;--bad:#b42318;--soft:#f6fbfe;--shadow:0 18px 44px rgba(6,43,73,.1)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI,Arial,sans-serif;padding:24px}
+    .wrap{max-width:1260px;margin:0 auto;display:grid;gap:16px}
+    .hero,.search-panel,.panel{background:linear-gradient(180deg,#fff,#f9fdff);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+    .hero{display:grid;grid-template-columns:1fr 240px 240px;gap:16px;align-items:stretch;padding:18px}
+    .hero-copy{display:flex;gap:14px;align-items:center}
+    .hero-icon{width:54px;height:54px;border-radius:16px;background:#e8f6fc;border:1px solid #c8e4f0;display:grid;place-items:center}.hero-icon svg{width:30px;height:30px}
+    .eyebrow{display:block;color:var(--brand);font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px}
+    h1{margin:0;font-size:25px;line-height:1.12}
+    .hero p{margin:7px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
+    .add-user-card{border:1px solid #b9def0;border-radius:17px;background:linear-gradient(135deg,#e7f7fd,#fff);display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;padding:14px;text-align:left;cursor:pointer;color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,.85);transition:.18s ease}
+    .add-user-card:hover{transform:translateY(-1px);box-shadow:0 16px 32px rgba(6,43,73,.11)}
+    .add-avatar{width:48px;height:48px;border-radius:16px;background:#fff;border:1px solid #cfe5ef;display:grid;place-items:center}.add-avatar svg{width:26px;height:26px}
+    .add-user-card strong{display:block;font-size:16px}
+    .add-user-card span{display:block;color:var(--muted);font-size:12px;font-weight:750;margin-top:3px}
+    .module-area{border:1px solid var(--line);border-radius:13px;padding:11px 13px;background:#fbfdff}
+    .module-area h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand)}
+    .module-check{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;font-weight:600;color:var(--text)}
+    .module-check input{width:auto}
+    .module-tree{display:grid;gap:12px;margin-top:14px;max-height:46vh;overflow:auto}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .kpi{background:#fff;border:1px solid #dbe8f0;border-radius:16px;padding:14px;text-align:left;font-family:inherit;cursor:pointer;transition:box-shadow .15s ease,border-color .15s ease}
+    .kpi:hover{box-shadow:0 12px 26px rgba(6,43,73,.1)}
+    .kpi.is-active{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(11,125,178,.16)}
+    .kpi strong{display:block;font-size:24px;line-height:1;color:var(--text)}
+    .kpi span{display:block;margin-top:6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;font-weight:900}
+    .search-panel{padding:16px}
+    .toolbar{display:grid;grid-template-columns:220px 1fr 190px auto auto;gap:12px;align-items:end}
+    label{display:grid;gap:6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:850}
+    input,select{width:100%;border:1px solid #c7d8e4;border-radius:11px;padding:12px 13px;font-size:14px;color:var(--text);background:#fff;outline:none}
+    input:focus,select:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(11,125,178,.12)}
+    button{border:0;border-radius:11px;padding:12px 16px;font-weight:900;cursor:pointer;font-family:inherit}
+    .primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+    .ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+    .danger{background:#fff1f1;color:var(--bad);border:1px solid #ffc9c9}
+    .panel{overflow:hidden}
+    .panel-title{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;border-bottom:1px solid var(--line);font-weight:950}
+    .status{font-size:12px;color:var(--muted);font-weight:800}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:12px 14px;border-bottom:1px solid #e6eef4;text-align:left;vertical-align:middle}
+    th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#5d7486;background:#f5f9fc}
+    .user{font-weight:950}
+    .pill{display:inline-flex;border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900}
+    .pill.activo{background:#e8fff6;color:var(--ok)}
+    .pill.vacaciones{background:#fff7df;color:var(--warn)}
+    .pill.bloqueado{background:#ffe4e4;color:#b42318}
+    .pill.retirado{background:#fff0f0;color:var(--bad)}
+    .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .message{color:var(--muted);font-weight:800;font-size:13px}.clear-filter{width:44px;height:44px;padding:0;border-radius:13px;background:#fff1f1;color:#b42318;border:1px solid #ffc9c9;font-size:20px;line-height:1}.role-entry{display:grid;gap:8px}.role-new{display:none}.role-entry.is-new .role-new{display:block}.confirm-card{display:none;margin-top:14px;border:1px solid #b9def0;border-radius:14px;background:#f4fbff;padding:13px;color:var(--text)}.confirm-card.is-visible{display:block}.confirm-card strong{display:block;margin-bottom:8px}.confirm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:13px}.confirm-grid span{color:var(--muted);font-weight:800}.confirm-grid b{display:block;color:var(--text)}
+    .field-hidden{display:none}
+    .pwd-input-row{display:flex;gap:8px;align-items:center}
+    .pwd-input-row input{flex:1}
+    .pwd-toggle{flex:0 0 auto;width:46px;min-height:46px;padding:0;background:#fff;color:var(--muted);border:1px solid var(--line);display:grid;place-items:center;cursor:pointer;transition:color .15s ease,border-color .15s ease}
+    .pwd-toggle:hover,.pwd-toggle:focus-visible{color:var(--brand);border-color:var(--brand);outline:none}
+    .pwd-toggle svg{width:20px;height:20px;pointer-events:none}
+    .pwd-toggle .icon-eye-off{display:none}
+    .pwd-toggle.is-visible .icon-eye{display:none}
+    .pwd-toggle.is-visible .icon-eye-off{display:block}
+    .reset-msg{font-weight:800;font-size:13px;margin-top:10px;min-height:1.2em}
+    .reset-msg.ok{color:var(--ok)}
+    .reset-msg.error{color:var(--bad)}
+    .modal-backdrop{position:fixed;inset:0;z-index:50;background:rgba(2,23,39,.48);display:grid;place-items:center;padding:18px}
+    .modal-backdrop[hidden]{display:none}
+    .modal{width:min(720px,100%);background:#fff;border:1px solid #cfe0eb;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.24);overflow:hidden}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fbfdff,#f4f9fc)}
+    .modal-head h2{margin:0;font-size:20px}
+    .close{width:38px;height:38px;border-radius:12px;padding:0;background:#fff;border:1px solid var(--line);font-size:20px;color:var(--muted)}
+    .modal-body{padding:18px 20px}
+    .editor-grid{display:grid;grid-template-columns:170px 1fr;gap:13px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+    html.embed-mode body{padding:22px}
+    @media(max-width:920px){.hero{grid-template-columns:1fr}.toolbar,.editor-grid,.kpis{grid-template-columns:1fr}.actions button,.modal-actions button{flex:1}.modal-actions{display:flex}}
+    @media(max-width:620px){body{padding:14px}.hero-copy{align-items:flex-start}h1{font-size:22px}.panel-title{display:grid;gap:6px}}
+  </style>
+  <script>
+    if(new URLSearchParams(location.search).get("embed")==="1") document.documentElement.classList.add("embed-mode");
+  </script>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero" aria-label="Control de usuarios">
+      <div class="hero-copy">
+        <div class="hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0b7db2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div>
+          <span class="eyebrow">Directorio operativo</span>
+          <h1>Control de usuarios</h1>
+          <p>Administra roles, estados y accesos del personal desde una vista limpia y rápida.</p>
+        </div>
+      </div>
+      <button class="add-user-card" id="addUserCard" type="button">
+        <span class="add-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0b7db2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <span><strong>Añadir usuario</strong><span>Crear nuevo acceso</span></span>
+      </button>
+      <button class="add-user-card" id="addRoleCard" type="button">
+        <span class="add-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0b7db2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span><strong>Añadir rol</strong><span>Crear rol y sus accesos</span></span>
+      </button>
+    </section>
+
+    <section class="kpis" aria-label="Resumen de usuarios">
+      <button class="kpi" id="kpiCardTotal" type="button" data-status=""><strong id="kpiTotal">0</strong><span>Total usuarios</span></button>
+      <button class="kpi" id="kpiCardActive" type="button" data-status="Activo"><strong id="kpiActive">0</strong><span>Activos</span></button>
+      <button class="kpi" id="kpiCardVacation" type="button" data-status="Vacaciones"><strong id="kpiVacation">0</strong><span>Vacaciones</span></button>
+      <button class="kpi" id="kpiCardRetired" type="button" data-status="Retirado"><strong id="kpiRetired">0</strong><span>Retirados</span></button>
+    </section>
+
+    <section class="search-panel" aria-label="Búsqueda de usuarios">
+      <form class="toolbar" id="filterForm">
+        <label>Rol
+          <select id="roleFilter">
+            <option value="">Todos los roles</option>
+          </select>
+        </label>
+        <label>Usuario
+          <input id="search" list="userSuggestions" placeholder="Escribe parte del usuario o nombre">
+          <datalist id="userSuggestions"></datalist>
+        </label>
+        <label>Estado
+          <select id="statusFilter">
+            <option value="">Todos</option>
+            <option value="Activo">Activo</option>
+            <option value="Vacaciones">Vacaciones</option>
+            <option value="Bloqueado">Bloqueado</option>
+            <option value="Retirado">Retirado</option>
+          </select>
+        </label>
+        <button class="primary" type="submit">Buscar</button>
+        <button class="clear-filter" id="clearFilters" type="button" title="Borrar filtros" aria-label="Borrar filtros">×</button>
+      </form>
+      <div class="message" id="message" style="margin-top:10px"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <span>Usuarios y roles</span>
+        <span class="status" id="tableStatus">0 usuarios</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rol</th>
+              <th>Usuario</th>
+              <th>Nombre / Razón</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="userModal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div>
+          <span class="eyebrow">Gestión de usuario</span>
+          <h2 id="modalTitle">Añadir usuario</h2>
+        </div>
+        <button class="close" id="closeModal" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="userForm">
+          <input id="row" type="hidden">
+          <div class="editor-grid">
+            <label>Rol
+              <select id="rolSelect" required></select>
+            </label>
+            <label>Nombre / Razón
+              <input id="razon" placeholder="Nombre visible">
+            </label>
+            <label>Usuario
+              <input id="usuario" required placeholder="Usuario">
+            </label>
+            <label>Estado
+              <select id="estado">
+                <option>Activo</option>
+                <option>Vacaciones</option>
+                <option>Bloqueado</option>
+                <option>Retirado</option>
+              </select>
+            </label>
+            <label id="passwordField">Contraseña
+              <input id="password" type="password" placeholder="Ingrese una contraseña">
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button class="ghost" id="cancelModal" type="button">Cancelar</button>
+            <button class="primary" id="saveUserBtn" type="submit">Confirmar datos</button>
+          </div>
+          <div class="confirm-card" id="confirmCard"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="roleModal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="roleModalTitle">
+      <div class="modal-head">
+        <div>
+          <span class="eyebrow">Gestión de roles</span>
+          <h2 id="roleModalTitle">Añadir rol</h2>
+        </div>
+        <button class="close" id="closeRoleModal" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="roleForm">
+          <label>Nombre del rol
+            <input id="newRoleName" required placeholder="Ej: Coordinacion Bodega">
+          </label>
+          <div class="module-tree" id="roleModulesTree"></div>
+          <div class="modal-actions">
+            <button class="ghost" id="cancelRoleModal" type="button">Cancelar</button>
+            <button class="primary" type="submit">Guardar rol</button>
+          </div>
+          <div class="message" id="roleMessage" style="margin-top:10px"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="resetPwdModal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="resetPwdTitle">
+      <div class="modal-head">
+        <div>
+          <span class="eyebrow">Seguridad de acceso</span>
+          <h2 id="resetPwdTitle">Resetear contraseña</h2>
+        </div>
+        <button class="close" id="closeResetPwd" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="modal-body">
+        <form id="resetPwdForm">
+          <input id="resetRow" type="hidden">
+          <p style="margin:0 0 12px;color:var(--muted);font-size:13px;">Usuario: <strong id="resetPwdUser"></strong></p>
+          <label>Nueva contraseña
+            <span class="pwd-input-row">
+              <input id="resetPwdInput" type="password" required minlength="3" placeholder="Ingrese la nueva contraseña" autocomplete="new-password">
+              <button class="pwd-toggle" type="button" id="toggleResetPwd" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-3.22 4.36"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </span>
+          </label>
+          <div class="modal-actions">
+            <button class="ghost" id="cancelResetPwd" type="button">Cancelar</button>
+            <button class="primary" id="confirmResetPwd" type="submit">Confirmar</button>
+          </div>
+          <div class="reset-msg" id="resetPwdMsg"></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const ACCESS_API_URL = "https://script.google.com/macros/s/AKfycbwcCp7XoggKct8SYc5oPJC0FwXPTq1DnVmPxRIuu1P0qHvUVgQSjuMhvkYhCimfsQy2/exec";
+    const INTERNAL_API_KEY = "OPA-INTERNAL-2026";
+    const $ = id => document.getElementById(id);
+    let users = [];
+    let extraRoles = [];
+    let confirmReady = false;
+
+    // Catálogo de módulos/submódulos disponibles para asignar a un rol nuevo.
+    // Debe reflejar MODULE_DEFINITIONS/AREA_GROUPS de Login/index.html — si se
+    // agrega un módulo ahí, agrégalo también aquí (y en control_modulos.html).
+    const MODULE_CATALOG = [
+      { area: "Control de accesos", items: [
+        { key: "ControlAccesoInforme", label: "Informe de accesos" },
+        { key: "ControlAccesoAdmin", label: "Administrar accesos" },
+        { key: "ControlUsuarios", label: "Control de usuarios" },
+        { key: "ControlModulos", label: "Control de módulos" }
+      ]},
+      { area: "Ventas", items: [
+        { key: "MapaVentas", label: "Mapa" },
+        { key: "VentasOperativo", label: "BI Ventas" },
+        { key: "BiVendedor", label: "BI Vendedor" },
+        { key: "Cartera", label: "BI Cartera" },
+        { key: "VentasGerencial", label: "BI Gerencial" },
+        { key: "Retorno", label: "BI Devoluciones" },
+        { key: "NuevoDia", label: "BI Nuevo Dia" }
+      ]},
+      { area: "Logística", items: [
+        { key: "Logistica", label: "Logística" }
+      ]},
+      { area: "Gerencia", items: [
+        { key: "GerenciaTablero", label: "Tablero Control" },
+        { key: "GerenciaRevision", label: "Revisión Costo" },
+        { key: "GerenciaFlujo", label: "Flujo Caja" }
+      ]},
+      { area: "ICE", items: [
+        { key: "IceResumen", label: "Resumen" },
+        { key: "IceInventario", label: "Inventario" },
+        { key: "IceReportes", label: "Reportes" },
+        { key: "IceEscaneo", label: "Escaneo" },
+        { key: "IceMisVisitas", label: "Mis visitas" }
+      ]}
+    ];
+
+    function norm(value){return String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim()}
+    function escapeHtml(value){return String(value??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]))}
+    function statusClass(value){const n=norm(value);if(n==="VACACIONES")return"vacaciones";if(n==="BLOQUEADO")return"bloqueado";if(n==="RETIRADO")return"retirado";return"activo"}
+    async function api(action,payload={}){
+      const response=await fetch(ACCESS_API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},cache:"no-store",body:JSON.stringify({action,payload:{...payload,apiKey:INTERNAL_API_KEY}})});
+      const text=await response.text();
+      return JSON.parse(String(text||"{}"));
+    }
+    function setMessage(text,type=""){ $("message").textContent=text; $("message").style.color=type==="error"?"#b42318":"#6d8497"; }
+    async function loadUsers(){
+      const data=await api("getUsers");
+      if(!data.success) throw new Error(data.message||"No se pudo cargar usuarios");
+      users=data.users||[];
+      syncRoleOptions();
+      syncUserSuggestions();
+      renderUsers();
+    }
+    async function loadRoles(){
+      const data=await api("getRoles");
+      if(data.success) extraRoles=data.roles||[];
+      syncRoleOptions();
+    }
+    function uniqueSorted(values){
+      return [...new Set(values.map(value=>String(value||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
+    }
+    function syncRoleOptions(){
+      const selected=$("roleFilter").value;
+      const modalSelected=$("rolSelect") ? $("rolSelect").value : "";
+      const roles=uniqueSorted([...users.map(user=>user.rol),...extraRoles]);
+      $("roleFilter").innerHTML=`<option value="">Todos los roles</option>`+roles.map(role=>`<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join("");
+      if(roles.includes(selected)) $("roleFilter").value=selected;
+      if($("rolSelect")){
+        $("rolSelect").innerHTML=`<option value="">Seleccione un rol</option>`+roles.map(role=>`<option value="${escapeHtml(role)}">${escapeHtml(role)}</option>`).join("");
+        if(roles.includes(modalSelected)) $("rolSelect").value=modalSelected;
+      }
+    }
+    function syncUserSuggestions(){
+      const options=uniqueSorted(users.flatMap(user=>[user.usuario,user.razon].filter(Boolean)));
+      $("userSuggestions").innerHTML=options.map(value=>`<option value="${escapeHtml(value)}"></option>`).join("");
+    }
+    function updateKpis(){
+      $("kpiTotal").textContent=users.length;
+      $("kpiActive").textContent=users.filter(user=>statusClass(user.estado)==="activo").length;
+      $("kpiVacation").textContent=users.filter(user=>statusClass(user.estado)==="vacaciones").length;
+      $("kpiRetired").textContent=users.filter(user=>statusClass(user.estado)==="retirado").length;
+      const activeStatus=norm($("statusFilter").value);
+      [["kpiCardTotal",""],["kpiCardActive","Activo"],["kpiCardVacation","Vacaciones"],["kpiCardRetired","Retirado"]].forEach(([id,status])=>{
+        const el=$(id);
+        if(el) el.classList.toggle("is-active", norm(status)===activeStatus);
+      });
+    }
+    function setRoleValue(role){
+      $("rolSelect").value=role||"";
+    }
+    function selectedRole(){
+      return $("rolSelect").value.trim();
+    }
+    function resetConfirmation(){
+      confirmReady=false;
+      updateConfirmState(false);
+      $("saveUserBtn").textContent="Confirmar datos";
+    }
+    function updateConfirmState(show){
+      const card=$("confirmCard");
+      if(!card)return;
+      card.classList.toggle("is-visible",!!show);
+      if(!show) card.innerHTML="";
+    }
+    function collectPayload(){
+      return {row:$("row").value,rol:selectedRole(),razon:$("razon").value,usuario:$("usuario").value,estado:$("estado").value,password:$("password").value};
+    }
+    function validatePayload(payload){
+      if(!payload.rol) return "Seleccione un rol.";
+      if(!payload.usuario) return "Ingrese el usuario.";
+      if(!payload.razon) return "Ingrese el nombre o razón.";
+      if(!payload.row && !payload.password) return "Ingrese una contraseña para el nuevo usuario.";
+      return "";
+    }
+    function showConfirmation(payload){
+      $("confirmCard").innerHTML=`<strong>Confirme que los datos son correctos</strong><div class="confirm-grid"><div><span>Rol</span><b>${escapeHtml(payload.rol)}</b></div><div><span>Usuario</span><b>${escapeHtml(payload.usuario)}</b></div><div><span>Nombre / Razón</span><b>${escapeHtml(payload.razon)}</b></div><div><span>Estado</span><b>${escapeHtml(payload.estado)}</b></div></div>`;
+      updateConfirmState(true);
+    }
+    function filteredUsers(){
+      const role=norm($("roleFilter").value);
+      const q=norm($("search").value);
+      const status=norm($("statusFilter").value);
+      return users.filter(user=>(!role||norm(user.rol)===role)&&(!q||norm(`${user.usuario} ${user.razon}`).includes(q))&&(!status||norm(user.estado)===status));
+    }
+    function isAdminRole(rol){return norm(rol)==="ADMIN";}
+    function renderUsers(){
+      const list=filteredUsers();
+      updateKpis();
+      $("usersBody").innerHTML=list.length?list.map(user=>`<tr>
+        <td>${escapeHtml(user.rol)}</td>
+        <td class="user">${escapeHtml(user.usuario)}</td>
+        <td>${escapeHtml(user.razon)}</td>
+        <td><span class="pill ${statusClass(user.estado)}">${escapeHtml(user.estado||"Activo")}</span></td>
+        <td><div class="actions"><button class="ghost" type="button" data-edit="${escapeHtml(user.row)}">Editar</button><button class="ghost" type="button" data-reset="${escapeHtml(user.row)}">Resetear contraseña</button>${isAdminRole(user.rol)?"":`<button class="danger" type="button" data-delete="${escapeHtml(user.row)}">Eliminar usuario</button>`}</div></td>
+      </tr>`).join(""):`<tr><td colspan="5" style="padding:34px;text-align:center;color:#6d8497">No hay usuarios para los filtros seleccionados.</td></tr>`;
+      $("tableStatus").textContent=`${list.length} de ${users.length} usuario(s)`;
+      document.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>editUser(btn.dataset.edit)));
+      document.querySelectorAll("[data-reset]").forEach(btn=>btn.addEventListener("click",()=>openResetPassword(btn.dataset.reset)));
+      document.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",()=>deleteUserAction(btn.dataset.delete)));
+    }
+    function openModal(title){
+      confirmReady=false;
+      updateConfirmState(false);
+      $("saveUserBtn").textContent="Confirmar datos";
+      $("modalTitle").textContent=title||"Añadir usuario";
+      $("userModal").hidden=false;
+      setTimeout(()=>$("rolSelect").focus(),40);
+    }
+    function closeModal(){
+      $("userModal").hidden=true;
+    }
+    function renderModuleTree(checkedKeys){
+      $("roleModulesTree").innerHTML=MODULE_CATALOG.map(group=>`
+        <div class="module-area">
+          <h4>${escapeHtml(group.area)}</h4>
+          ${group.items.map(item=>`<label class="module-check"><input type="checkbox" data-area="${escapeHtml(group.area)}" data-modulo="${escapeHtml(item.key)}" data-etiqueta="${escapeHtml(item.label)}"${checkedKeys.includes(item.key)?" checked":""}> ${escapeHtml(item.label)}</label>`).join("")}
+        </div>
+      `).join("");
+    }
+    function collectCheckedModules(){
+      const areas=new Set();
+      const submodulos=[];
+      document.querySelectorAll("#roleModulesTree input[type=checkbox]:checked").forEach(input=>{
+        areas.add(input.dataset.area);
+        submodulos.push(input.dataset.modulo);
+      });
+      return {modulos:[...areas],submodulos};
+    }
+    function openRoleModal(){
+      $("newRoleName").value="";
+      renderModuleTree([]);
+      $("roleMessage").textContent="";
+      $("roleModal").hidden=false;
+      setTimeout(()=>$("newRoleName").focus(),40);
+    }
+    function closeRoleModal(){
+      $("roleModal").hidden=true;
+    }
+    function editUser(row){
+      const user=users.find(item=>String(item.row)===String(row));
+      if(!user)return;
+      $("row").value=user.row||"";
+      setRoleValue(user.rol||"");
+      $("razon").value=user.razon||"";
+      $("usuario").value=user.usuario||"";
+      $("estado").value=user.estado||"Activo";
+      $("password").value="";
+      $("passwordField").classList.add("field-hidden");
+      openModal("Editar usuario");
+      setMessage("Editando usuario seleccionado. La contraseña se cambia con el botón \"Resetear contraseña\".");
+    }
+    function clearForm(){
+      $("userForm").reset();
+      $("row").value="";
+      $("estado").value="Activo";
+      setRoleValue("");
+      $("passwordField").classList.remove("field-hidden");
+      setMessage("");
+      openModal("Añadir usuario");
+    }
+    async function deleteUserAction(row){
+      const user=users.find(item=>String(item.row)===String(row));
+      if(user&&isAdminRole(user.rol)){setMessage("El usuario administrador no se puede eliminar.","error");return;}
+      if(!confirm("¿Eliminar este usuario? Quedará como retirado y podrá reactivarlo luego cambiando su estado a Activo."))return;
+      const data=await api("deleteUser",{row});
+      setMessage(data.message||"",data.success?"":"error");
+      await loadUsers();
+    }
+    function openResetPassword(row){
+      const user=users.find(item=>String(item.row)===String(row));
+      if(!user)return;
+      $("resetRow").value=user.row;
+      $("resetPwdUser").textContent=`${user.usuario}${user.razon?" — "+user.razon:""}`;
+      $("resetPwdInput").value="";
+      $("resetPwdInput").type="password";
+      $("toggleResetPwd").classList.remove("is-visible");
+      $("resetPwdMsg").textContent="";
+      $("resetPwdMsg").className="reset-msg";
+      $("resetPwdModal").hidden=false;
+      setTimeout(()=>$("resetPwdInput").focus(),40);
+    }
+    function closeResetPassword(){
+      $("resetPwdModal").hidden=true;
+    }
+    $("filterForm").addEventListener("submit",event=>{event.preventDefault();renderUsers()});
+    $("clearFilters").addEventListener("click",()=>{$("roleFilter").value="";$("search").value="";$("statusFilter").value="";renderUsers();});
+    ["kpiCardTotal","kpiCardActive","kpiCardVacation","kpiCardRetired"].forEach(id=>{
+      $(id).addEventListener("click",()=>{
+        const status=$(id).dataset.status||"";
+        $("statusFilter").value=(norm($("statusFilter").value)===norm(status))?"":status;
+        renderUsers();
+      });
+    });
+    $("roleFilter").addEventListener("change",renderUsers);
+    $("statusFilter").addEventListener("change",renderUsers);
+    $("search").addEventListener("input",renderUsers);
+    $("addUserCard").addEventListener("click",clearForm);
+    $("addRoleCard").addEventListener("click",openRoleModal);
+    $("closeRoleModal").addEventListener("click",closeRoleModal);
+    $("cancelRoleModal").addEventListener("click",closeRoleModal);
+    $("roleModal").addEventListener("click",event=>{if(event.target===$("roleModal")) closeRoleModal()});
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("roleModal").hidden) closeRoleModal()});
+    $("roleForm").addEventListener("submit",async(event)=>{
+      event.preventDefault();
+      const rol=$("newRoleName").value.trim();
+      const msg=$("roleMessage");
+      if(!rol){msg.textContent="Ingrese el nombre del rol.";msg.style.color="#b42318";return;}
+      const {modulos,submodulos}=collectCheckedModules();
+      if(!submodulos.length){msg.textContent="Selecciona al menos un módulo o submódulo.";msg.style.color="#b42318";return;}
+      const data=await api("saveRoleModules",{rol,modulos,submodulos});
+      msg.textContent=data.message||"";
+      msg.style.color=data.success?"#6d8497":"#b42318";
+      if(data.success){
+        closeRoleModal();
+        await loadRoles();
+        setMessage(`Rol "${rol}" creado con sus módulos y submódulos.`);
+      }
+    });
+    $("rolSelect").addEventListener("change",resetConfirmation);
+    ["razon","usuario","estado","password"].forEach(id=>$(id).addEventListener("input",resetConfirmation));
+    $("closeModal").addEventListener("click",closeModal);
+    $("cancelModal").addEventListener("click",closeModal);
+    $("userModal").addEventListener("click",event=>{if(event.target===$("userModal")) closeModal()});
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("userModal").hidden) closeModal()});
+    $("userForm").addEventListener("submit",async(event)=>{
+      event.preventDefault();
+      const payload=collectPayload();
+      const validation=validatePayload(payload);
+      if(validation){setMessage(validation,"error");return;}
+      if(!confirmReady){
+        showConfirmation(payload);
+        confirmReady=true;
+        $("saveUserBtn").textContent="Guardar usuario";
+        setMessage("Revise los datos y presione Guardar usuario para confirmar.");
+        return;
+      }
+      const data=await api("saveUser",payload);
+      setMessage(data.message||"",data.success?"":"error");
+      if(data.success){closeModal();$("userForm").reset();confirmReady=false;await loadUsers();}
+    });
+    $("closeResetPwd").addEventListener("click",closeResetPassword);
+    $("cancelResetPwd").addEventListener("click",closeResetPassword);
+    $("resetPwdModal").addEventListener("click",event=>{if(event.target===$("resetPwdModal")) closeResetPassword()});
+    document.addEventListener("keydown",event=>{if(event.key==="Escape"&&!$("resetPwdModal").hidden) closeResetPassword()});
+    $("toggleResetPwd").addEventListener("click",()=>{
+      const input=$("resetPwdInput");
+      const showing=input.type==="text";
+      input.type=showing?"password":"text";
+      $("toggleResetPwd").classList.toggle("is-visible",!showing);
+    });
+    $("resetPwdForm").addEventListener("submit",async(event)=>{
+      event.preventDefault();
+      const row=$("resetRow").value;
+      const nueva=$("resetPwdInput").value.trim();
+      const msg=$("resetPwdMsg");
+      if(nueva.length<3){msg.textContent="La contraseña debe tener al menos 3 caracteres.";msg.className="reset-msg error";return;}
+      const confirmBtn=$("confirmResetPwd");
+      confirmBtn.disabled=true;confirmBtn.textContent="Guardando...";
+      try{
+        const data=await api("resetPassword",{row,password:nueva});
+        if(!data.success){msg.textContent=data.message||"No se pudo cambiar la contraseña.";msg.className="reset-msg error";return;}
+        msg.textContent="✅ Contraseña cambiada exitosamente";
+        msg.className="reset-msg ok";
+        await loadUsers();
+        setTimeout(closeResetPassword,1200);
+        return;
+      }catch(error){
+        msg.textContent="No se pudo contactar el servidor. Intente de nuevo.";
+        msg.className="reset-msg error";
+      }finally{
+        confirmBtn.disabled=false;confirmBtn.textContent="Confirmar";
+      }
+    });
+    (async()=>{ try{ await loadRoles(); await loadUsers(); }catch(error){ setMessage(error.message,"error"); } })();
+  </script>
+<script src="../session-activity.js"></script>
+</body>
+</html>
+
+

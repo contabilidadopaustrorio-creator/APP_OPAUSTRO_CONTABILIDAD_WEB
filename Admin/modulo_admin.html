@@ -1,0 +1,78 @@
+﻿<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Modulo Admin - OPAUSTRO</title>
+  <style>
+    :root{font-family:"Segoe UI",Arial,sans-serif;color:#09253d;background:#eef4f8}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:#eef4f8}
+    header{padding:22px 28px;background:#075f9b;color:#fff;display:flex;align-items:center;gap:14px}
+    header img{width:54px;height:54px;object-fit:contain;background:#fff;border-radius:8px;padding:6px}
+    h1{font-size:1.2rem;margin:0}
+    main{padding:24px;display:grid;gap:22px;max-width:1100px;margin:auto}
+    section{background:#fff;border:1px solid #d8e5ed;border-radius:8px;padding:18px}
+    h2{font-size:1rem;margin:0 0 12px;color:#075f9b}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+    a{display:flex;align-items:center;gap:10px;min-height:48px;padding:12px;border:1px solid #d8e5ed;border-radius:8px;text-decoration:none;color:#12324a;font-weight:700;background:#f8fbfd}
+    a:hover{border-color:#075f9b;color:#075f9b}
+    a img{width:30px;height:30px;object-fit:contain;flex:0 0 30px}
+    html.embed-mode header{display:none}
+  </style>
+  <script>
+    if(new URLSearchParams(location.search).get('embed')==='1') document.documentElement.classList.add('embed-mode');
+  </script>
+</head>
+<body>
+  <header>
+    <img src="../Recuros_imagenes/icon-192.png" alt="OPAUSTRO">
+    <div><h1>Modulo Admin</h1><small>Contenedor administrativo de rutas reales</small></div>
+  </header>
+  <main>
+    <section>
+      <h2>Modulos principales</h2>
+      <div class="grid">
+        <a href="../Ventas/modulo_ventas.html">Modulo Ventas</a>
+        <a href="../Logistica/modulo_logistica.html">Modulo Logistica</a>
+        <a href="../Gerencia/modulo_gerencia.html">Modulo Gerencia</a>
+        <a href="../ICE_Pinguino/resumen.html?perfil=admin"><img src="../Recuros_imagenes/pinguino.png" alt="">Modulo ICE</a>
+      </div>
+    </section>
+    <section>
+      <h2>Submodulos Ventas</h2>
+      <div class="grid">
+        <a href="../Ventas/ventas.html">Mapa Territorial</a>
+        <a href="../Ventas/bi_ventas.html">BI Ventas</a>
+        <a href="../Ventas/bi_cartera.html">BI Cartera</a>
+        <a href="../Ventas/bi_gerencial.html">BI Gerencial</a>
+        <a href="../Ventas/bi_retornos.html">BI Devoluciones</a>
+        <a href="../Ventas/bi_nuevo_dia.html">BI Nuevo Dia</a>
+      </div>
+    </section>
+    <section>
+      <h2>Submodulos Logistica</h2>
+      <div class="grid"><a href="../Logistica/cabinets.html">Cabinets</a></div>
+    </section>
+    <section>
+      <h2>Submodulos ICE</h2>
+      <div class="grid">
+        <a href="../ICE_Pinguino/resumen.html?perfil=admin"><img src="../Recuros_imagenes/resumen.png" alt="">Resumen</a>
+        <a href="../ICE_Pinguino/inventario.html?perfil=admin"><img src="../Recuros_imagenes/inventario.png" alt="">Inventario</a>
+        <a href="../ICE_Pinguino/reportes.html?perfil=admin"><img src="../Recuros_imagenes/reporte.png" alt="">Reportes</a>
+      </div>
+    </section>
+    <section>
+      <h2>Submodulos Gerencia</h2>
+      <div class="grid">
+        <a href="../Gerencia/tablero.html">Tablero Control</a>
+        <a href="../Gerencia/revision.html">Revision Costo</a>
+        <a href="../Gerencia/flujo-caja-opaustro.html">Flujo Caja</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+
+

@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Control de módulos</title>
+  <style>
+    :root{
+      --bg:#eef5fa;--panel:#fff;--text:#062b49;--muted:#6d8497;--brand:#0b7db2;--brand2:#0f9ccc;--line:#d5e3ec;
+      --ok:#008060;--ok-bg:#e8fff6;--warn:#b7791f;--warn-bg:#fff7df;--bad:#b42318;--bad-bg:#fff1f1;--soft:#f6fbfe;--shadow:0 18px 44px rgba(6,43,73,.1)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI,Arial,sans-serif;padding:24px}
+    .wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+    .hero,.panel{background:linear-gradient(180deg,#fff,#f9fdff);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+    .hero{display:flex;gap:14px;align-items:center;padding:18px;flex-wrap:wrap}
+    .hero-icon{width:54px;height:54px;border-radius:16px;background:#e8f6fc;border:1px solid #c8e4f0;display:grid;place-items:center;flex:0 0 auto}.hero-icon svg{width:30px;height:30px}
+    .eyebrow{display:block;color:var(--brand);font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px}
+    h1{margin:0;font-size:25px;line-height:1.12}
+    .hero p{margin:7px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
+    .hero-copy{flex:1;min-width:220px}
+    .hero-count{margin-left:auto;background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px 16px;text-align:center}
+    .hero-count strong{display:block;font-size:22px;line-height:1}
+    .hero-count span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:900;margin-top:3px}
+    button{border:0;border-radius:11px;padding:11px 15px;font-weight:900;cursor:pointer;font-family:inherit;font-size:13px}
+    .primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+    .ghost{background:#fff;color:var(--text);border:1px solid var(--line)}
+    .danger{background:var(--bad-bg);color:var(--bad);border:1px solid #ffc9c9}
+    .roles-list{display:grid;gap:14px}
+    .role-card{background:#fff;border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;transition:border-color .18s ease}
+    .role-card.is-open{border-left-color:var(--brand2)}
+    .role-head{padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .role-avatar{width:42px;height:42px;border-radius:13px;background:#e8f6fc;border:1px solid #c8e4f0;display:grid;place-items:center;flex:0 0 auto}
+    .role-avatar svg{width:22px;height:22px}
+    .role-name{font-size:16px;font-weight:950;flex:1;min-width:140px}
+    .role-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:900;white-space:nowrap;background:var(--ok-bg);color:var(--ok)}
+    .role-badge.zero{background:var(--soft);color:var(--muted)}
+    .role-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .icon-btn{width:40px;height:40px;padding:0;display:grid;place-items:center;background:#fff;color:var(--brand);border:1px solid var(--line)}
+    .icon-btn svg{width:19px;height:19px}
+    .icon-btn.is-active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent}
+    .role-body{padding:0 18px 18px;border-top:1px solid var(--line)}
+    .role-body[hidden]{display:none}
+    .view-tree{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}
+    .view-area h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand)}
+    .view-area ul{margin:0;padding-left:18px;font-size:13px;font-weight:600}
+    .view-area li{padding:2px 0}
+    .view-empty{color:var(--muted);font-size:14px;padding:18px 0;text-align:center}
+    .module-tree{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:14px}
+    .module-area{border:1px solid var(--line);border-radius:13px;padding:11px 13px;background:#fbfdff}
+    .module-area h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand)}
+    .module-check{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px;font-weight:600;color:var(--text)}
+    .module-check input{width:auto}
+    .actions-row{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+    .message{color:var(--muted);font-weight:800;font-size:13px;margin-top:10px;min-height:1.1em}
+    .empty-hint{color:var(--muted);font-size:14px;padding:34px;text-align:center}
+    html.embed-mode body{padding:22px}
+    @media(max-width:720px){.module-tree,.view-tree{grid-template-columns:1fr}.hero-count{margin-left:0}}
+  </style>
+  <script>
+    if(new URLSearchParams(location.search).get("embed")==="1") document.documentElement.classList.add("embed-mode");
+  </script>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero" aria-label="Control de módulos">
+      <div class="hero-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0b7db2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 7v6c0 5 4 8 9 9 5-1 9-4 9-9V7Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <div class="hero-copy">
+        <span class="eyebrow">Directorio operativo</span>
+        <h1>Control de módulos</h1>
+        <p>Activa o desactiva los módulos y submódulos de cada rol, o renómbralo/elimínalo si ya no se usa.</p>
+      </div>
+      <button class="ghost" id="seedBtn" type="button" title="Llena la hoja con el acceso actual de cada rol que todavía no tenga configuración propia">Sincronizar roles clásicos</button>
+      <div class="hero-count"><strong id="roleCount">0</strong><span>Roles</span></div>
+    </section>
+
+    <div class="roles-list" id="rolesList"></div>
+  </main>
+
+  <script>
+    const ACCESS_API_URL = "https://script.google.com/macros/s/AKfycbwcCp7XoggKct8SYc5oPJC0FwXPTq1DnVmPxRIuu1P0qHvUVgQSjuMhvkYhCimfsQy2/exec";
+    const INTERNAL_API_KEY = "OPA-INTERNAL-2026";
+    const $ = id => document.getElementById(id);
+
+    // Catálogo de módulos/submódulos disponibles. Debe reflejar
+    // MODULE_DEFINITIONS/AREA_GROUPS de Login/index.html — si se agrega un
+    // módulo ahí, agrégalo también aquí (y en Admin/control_usuarios.html).
+    const MODULE_CATALOG = [
+      { area: "Control de accesos", items: [
+        { key: "ControlAccesoInforme", label: "Informe de accesos" },
+        { key: "ControlAccesoAdmin", label: "Administrar accesos" },
+        { key: "ControlUsuarios", label: "Control de usuarios" },
+        { key: "ControlModulos", label: "Control de módulos" }
+      ]},
+      { area: "Ventas", items: [
+        { key: "MapaVentas", label: "Mapa" },
+        { key: "VentasOperativo", label: "BI Ventas" },
+        { key: "BiVendedor", label: "BI Vendedor" },
+        { key: "Cartera", label: "BI Cartera" },
+        { key: "VentasGerencial", label: "BI Gerencial" },
+        { key: "Retorno", label: "BI Devoluciones" },
+        { key: "NuevoDia", label: "BI Nuevo Dia" }
+      ]},
+      { area: "Logística", items: [
+        { key: "Logistica", label: "Logística" }
+      ]},
+      { area: "Gerencia", items: [
+        { key: "GerenciaTablero", label: "Tablero Control" },
+        { key: "GerenciaRevision", label: "Revisión Costo" },
+        { key: "GerenciaFlujo", label: "Flujo Caja" }
+      ]},
+      { area: "ICE", items: [
+        { key: "IceResumen", label: "Resumen" },
+        { key: "IceInventario", label: "Inventario" },
+        { key: "IceReportes", label: "Reportes" },
+        { key: "IceEscaneo", label: "Escaneo" },
+        { key: "IceMisVisitas", label: "Mis visitas" }
+      ]}
+    ];
+
+    // Acceso "clásico" (hardcodeado en Login/index.html) para los roles que
+    // todavía no tienen fila propia en CONTROL_MODULOS_Y_SUBMODULOS_pruebas.
+    // Se usa SOLO para precargar los checkboxes con lo que ese rol realmente
+    // ve hoy al iniciar sesión — si se agrega/cambia un bundle en
+    // Login/index.html, refleja el cambio aquí también.
+    const VENTAS_ADMIN_BUNDLE = ["VentasOperativo","BiVendedor","MapaVentas","Cartera","VentasGerencial","Retorno","NuevoDia"];
+    const VENDEDOR_BUNDLE = ["NuevoDia","BiVendedor","Cartera","Retorno","MapaVentas"];
+    const LOGISTICA_BUNDLE = ["Logistica","Retorno"];
+    const GERENCIA_BUNDLE = ["GerenciaTablero","GerenciaRevision","GerenciaFlujo"];
+    const ICE_ADMIN_BUNDLE = ["IceResumen","IceInventario","IceReportes"];
+    const ICE_OPERATIVO_BUNDLE = ["IceEscaneo","IceMisVisitas"];
+    const ACCESS_CONTROL_BUNDLE = ["ControlAccesoInforme","ControlAccesoAdmin","ControlUsuarios","ControlModulos"];
+    const GERENCIA_CONTROL_BUNDLE = ["ControlAccesoInforme","ControlModulos"];
+    const CLASSIC_ROLE_MODULES = {
+      "ADMIN": [...VENTAS_ADMIN_BUNDLE, ...LOGISTICA_BUNDLE, ...GERENCIA_BUNDLE, ...ICE_ADMIN_BUNDLE, ...ACCESS_CONTROL_BUNDLE],
+      "ADMINISTRADOR": [...VENTAS_ADMIN_BUNDLE, ...LOGISTICA_BUNDLE, ...GERENCIA_BUNDLE, ...ICE_ADMIN_BUNDLE, ...ACCESS_CONTROL_BUNDLE],
+      "GERENCIA": [...VENTAS_ADMIN_BUNDLE, ...LOGISTICA_BUNDLE, ...GERENCIA_BUNDLE, ...ICE_ADMIN_BUNDLE, ...GERENCIA_CONTROL_BUNDLE],
+      "GERENTE": [...VENTAS_ADMIN_BUNDLE, ...LOGISTICA_BUNDLE, ...GERENCIA_BUNDLE, ...ICE_ADMIN_BUNDLE, ...GERENCIA_CONTROL_BUNDLE],
+      "LOGISTICA": LOGISTICA_BUNDLE,
+      "TECNICO": ["Logistica"],
+      "TECNICO_LOGISTICA": ["Logistica"],
+      "SUPERVISOR": VENTAS_ADMIN_BUNDLE,
+      "CARTERA": ["Cartera"],
+      "VENDEDOR": VENDEDOR_BUNDLE,
+      "VENTAS": VENDEDOR_BUNDLE,
+      "VENDEDORES_ICE": [...ICE_OPERATIVO_BUNDLE, ...VENDEDOR_BUNDLE],
+      "VENDEDOR_ICE": [...ICE_OPERATIVO_BUNDLE, ...VENDEDOR_BUNDLE],
+      "ICE": [...ICE_OPERATIVO_BUNDLE, ...VENDEDOR_BUNDLE]
+    };
+    function normalizeRoleClassic(role){
+      return String(role||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[\s-]+/g,"_").trim().toUpperCase();
+    }
+    function classicModulesForRole(role){
+      return CLASSIC_ROLE_MODULES[normalizeRoleClassic(role)] || [];
+    }
+
+    function escapeHtml(value){return String(value??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]))}
+    async function api(action,payload={}){
+      const response=await fetch(ACCESS_API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},cache:"no-store",body:JSON.stringify({action,payload:{...payload,apiKey:INTERNAL_API_KEY}})});
+      const text=await response.text();
+      return JSON.parse(String(text||"{}"));
+    }
+
+    const ICON_GEAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+    const ICON_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+    function moduleTreeMarkup(checkedKeys){
+      return MODULE_CATALOG.map(group=>`
+        <div class="module-area">
+          <h4>${escapeHtml(group.area)}</h4>
+          ${group.items.map(item=>`<label class="module-check"><input type="checkbox" data-area="${escapeHtml(group.area)}" data-modulo="${escapeHtml(item.key)}"${checkedKeys.has(item.key)?" checked":""}> ${escapeHtml(item.label)}</label>`).join("")}
+        </div>
+      `).join("");
+    }
+
+    function viewTreeMarkup(checkedKeys){
+      const groups = MODULE_CATALOG
+        .map(group=>({ area: group.area, items: group.items.filter(item=>checkedKeys.has(item.key)) }))
+        .filter(group=>group.items.length);
+      if(!groups.length) return `<div class="view-empty">Este rol no tiene módulos ni submódulos activos.</div>`;
+      return `<div class="view-tree">${groups.map(group=>`
+        <div class="view-area">
+          <h4>${escapeHtml(group.area)}</h4>
+          <ul>${group.items.map(item=>`<li>${escapeHtml(item.label)}</li>`).join("")}</ul>
+        </div>
+      `).join("")}</div>`;
+    }
+
+    function roleCardMarkup(rol, checkedKeys){
+      const activeCount=checkedKeys.size;
+      const badgeClass=activeCount?"":" zero";
+      return `
+        <div class="role-card" data-rol="${escapeHtml(rol)}">
+          <div class="role-head">
+            <span class="role-avatar" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#0b7db2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></span>
+            <span class="role-name">${escapeHtml(rol)}</span>
+            <span class="role-badge${badgeClass}">${activeCount} módulo(s) activo(s)</span>
+            <span class="role-actions">
+              <button class="ghost" type="button" data-rename="${escapeHtml(rol)}">Renombrar</button>
+              <button class="danger" type="button" data-delete="${escapeHtml(rol)}">Eliminar rol</button>
+              <button class="icon-btn" type="button" data-mode-btn="config" title="Configurar módulos y submódulos">${ICON_GEAR}</button>
+              <button class="icon-btn" type="button" data-mode-btn="view" title="Ver módulos y submódulos activos">${ICON_EYE}</button>
+            </span>
+          </div>
+          <div class="role-body" data-mode="" hidden></div>
+        </div>
+      `;
+    }
+
+    function renderBody(card, mode, checkedKeys){
+      const body=card.querySelector(".role-body");
+      const rol=card.dataset.rol;
+      if(mode==="view"){
+        body.innerHTML = viewTreeMarkup(checkedKeys);
+        return;
+      }
+      body.innerHTML = `
+        <div class="module-tree">${moduleTreeMarkup(checkedKeys)}</div>
+        <div class="actions-row"><button class="primary" type="button" data-save="${escapeHtml(rol)}">Guardar cambios</button></div>
+        <div class="message" data-msg></div>
+      `;
+      body.querySelector("[data-save]").addEventListener("click",()=>saveRoleAction(rol));
+    }
+
+    function setMode(card, mode, checkedKeys){
+      const body=card.querySelector(".role-body");
+      const configBtn=card.querySelector('[data-mode-btn="config"]');
+      const viewBtn=card.querySelector('[data-mode-btn="view"]');
+      if(body.dataset.mode===mode && !body.hidden){
+        body.hidden=true; body.dataset.mode="";
+        card.classList.remove("is-open");
+        configBtn.classList.remove("is-active"); viewBtn.classList.remove("is-active");
+        return;
+      }
+      body.hidden=false; body.dataset.mode=mode;
+      card.classList.add("is-open");
+      configBtn.classList.toggle("is-active", mode==="config");
+      viewBtn.classList.toggle("is-active", mode==="view");
+      renderBody(card, mode, checkedKeys);
+    }
+
+    function bindCardEvents(byRole){
+      document.querySelectorAll(".role-card").forEach(card=>{
+        const rol=card.dataset.rol;
+        const checkedKeys=byRole[rol]||new Set();
+        card.querySelector('[data-mode-btn="config"]').addEventListener("click",()=>setMode(card,"config",checkedKeys));
+        card.querySelector('[data-mode-btn="view"]').addEventListener("click",()=>setMode(card,"view",checkedKeys));
+      });
+      document.querySelectorAll("[data-rename]").forEach(btn=>btn.addEventListener("click",()=>renameRolePrompt(btn.dataset.rename)));
+      document.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",()=>deleteRoleAction(btn.dataset.delete)));
+    }
+
+    async function loadAll(){
+      const [rolesData, modulesData] = await Promise.all([api("getRoles"), api("getRoleModules")]);
+      const roles = rolesData.success ? (rolesData.roles||[]) : [];
+      const entries = modulesData.success ? (modulesData.entries||[]) : [];
+
+      const customByRole = {};
+      entries.forEach(entry=>{ customByRole[entry.rol] = new Set(entry.submodulos||[]); });
+
+      const byRole = {};
+      roles.forEach(rol=>{
+        byRole[rol] = customByRole[rol] || new Set(classicModulesForRole(rol));
+      });
+
+      $("roleCount").textContent = roles.length;
+
+      if(!roles.length){
+        $("rolesList").innerHTML = `<div class="panel empty-hint">Todavía no hay roles registrados (créalos desde "Añadir usuario" o "Añadir rol" en Control de usuarios).</div>`;
+        return;
+      }
+
+      $("rolesList").innerHTML = roles.map(rol=>roleCardMarkup(rol, byRole[rol])).join("");
+      bindCardEvents(byRole);
+    }
+
+    async function saveRoleAction(rol){
+      const card=[...document.querySelectorAll(".role-card")].find(el=>el.dataset.rol===rol);
+      if(!card) return;
+      const areasConAcceso=new Set();
+      const submodulos=[];
+      card.querySelectorAll('input[type=checkbox]:checked').forEach(input=>{
+        areasConAcceso.add(input.dataset.area);
+        submodulos.push(input.dataset.modulo);
+      });
+      const modulos=[...areasConAcceso];
+
+      const msg=card.querySelector("[data-msg]");
+      const btn=card.querySelector("[data-save]");
+      btn.disabled=true; btn.textContent="Guardando...";
+      const data=await api("saveRoleModules",{rol,modulos,submodulos});
+      btn.disabled=false; btn.textContent="Guardar cambios";
+      msg.textContent=data.message||"";
+      msg.style.color=data.success?"var(--ok)":"var(--bad)";
+      if(data.success) await loadAll();
+    }
+
+    async function renameRolePrompt(oldRol){
+      const newRol=prompt(`Nuevo nombre para el rol "${oldRol}":`, oldRol);
+      if(!newRol || !newRol.trim() || newRol.trim()===oldRol) return;
+      const data=await api("renameRole",{oldRol,newRol:newRol.trim()});
+      alert(data.message || (data.success?"Rol renombrado.":"No se pudo renombrar el rol."));
+      if(data.success) await loadAll();
+    }
+
+    async function deleteRoleAction(rol){
+      if(!confirm(`¿Eliminar el rol "${rol}" de Control de módulos? Esto quita su configuración de módulos/submódulos; no elimina a los usuarios que ya tengan ese rol.`)) return;
+      const data=await api("deleteRole",{rol});
+      alert(data.message || (data.success?"Rol eliminado.":"No se pudo eliminar el rol."));
+      if(data.success) await loadAll();
+    }
+
+    document.addEventListener("keydown",event=>{
+      if(event.key!=="Escape") return;
+      const openCard=document.querySelector(".role-card.is-open");
+      if(!openCard) return;
+      const mode=openCard.querySelector(".role-body").dataset.mode;
+      if(mode) setMode(openCard,mode,new Set());
+    });
+
+    $("seedBtn").addEventListener("click",async()=>{
+      const btn=$("seedBtn");
+      btn.disabled=true; btn.textContent="Sincronizando...";
+      const data=await api("seedClassicRoles");
+      btn.disabled=false; btn.textContent="Sincronizar roles clásicos";
+      alert(data.message || (data.success?"Listo.":"No se pudo sincronizar."));
+      if(data.success) await loadAll();
+    });
+
+    loadAll().catch(()=>{
+      $("rolesList").innerHTML = `<div class="panel empty-hint">No se pudo conectar con el servidor.</div>`;
+    });
+  </script>
+  <script src="../session-activity.js"></script>
+</body>
+</html>

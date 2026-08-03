@@ -1,0 +1,4168 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Permissions-Policy" content="camera=(self), geolocation=(self), microphone=(), payment=(), usb=(), bluetooth=()">
+  <meta http-equiv="Content-Security-Policy" content="default-src &#39;self&#39; https://script.google.com https://script.googleusercontent.com https://docs.google.com https://app.powerbi.com https://cdnjs.cloudflare.com data: blob:; script-src &#39;self&#39; &#39;unsafe-inline&#39; https://script.google.com https://script.googleusercontent.com https://docs.google.com https://cdnjs.cloudflare.com; style-src &#39;self&#39; &#39;unsafe-inline&#39;; img-src &#39;self&#39; data: https:; connect-src &#39;self&#39; https://script.google.com https://script.googleusercontent.com https://docs.google.com https://app.powerbi.com https://cdnjs.cloudflare.com; frame-src &#39;self&#39; https://app.powerbi.com https://docs.google.com; object-src &#39;none&#39;; base-uri &#39;self&#39;; form-action &#39;self&#39;; upgrade-insecure-requests;">
+  <title>OPAUSTRO</title>
+  <link rel="icon" href="../Recuros_imagenes/icon-192.png?v=1.0.0">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <meta name="theme-color" content="#075f9b">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="OPAUSTRO">
+  <style>
+    :root {
+      --brand: #075f9b;
+      --brand-dark: #073f63;
+      --brand-deep: #054667;
+      --brand-soft: #e8f4fb;
+      --ink: #09253d;
+      --muted: #64758a;
+      --line: #c9d8e5;
+      --surface: #ffffff;
+      --canvas: #eef4f8;
+      --side: #e4f0f5;
+      --danger: #b42318;
+      --success: #087443;
+      --shadow: 0 26px 70px rgba(2, 22, 37, .24);
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 16%, rgba(255, 255, 255, .13), transparent 28%),
+        linear-gradient(145deg, #06324f 0%, #075b87 44%, #0a7aab 100%);
+    }
+
+    button,
+    select,
+    input {
+      font: inherit;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      align-content: center;
+      row-gap: 14px;
+      padding: clamp(18px, 4vw, 42px);
+    }
+
+    .login-footer {
+      margin: 0;
+      color: #6b7e8c;
+      font-size: .74rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-align: center;
+    }
+
+    .login-screen.is-hidden,
+    .app-screen.is-hidden {
+      display: none;
+    }
+
+    .login-shell {
+      width: min(100%, 620px);
+      display: grid;
+      gap: clamp(18px, 4vw, 28px);
+      align-items: center;
+      justify-items: center;
+    }
+
+    .brand-panel {
+      width: min(100%, 430px);
+      display: grid;
+      place-items: center;
+    }
+
+    .logo-mark {
+      width: min(100%, 430px);
+      height: auto;
+      display: block;
+      padding: clamp(16px, 4vw, 24px) clamp(18px, 5vw, 30px);
+      background: rgba(255, 255, 255, .96);
+      border-radius: 8px;
+      box-shadow: 0 18px 54px rgba(0, 0, 0, .18);
+    }
+
+    .brand-panel h1,
+    .brand-panel p {
+      display: none;
+    }
+
+    .login-card {
+      width: min(100%, 620px);
+      background: var(--surface);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: clamp(26px, 5vw, 46px);
+      border: 1px solid rgba(255, 255, 255, .72);
+    }
+
+    .card-head {
+      margin-bottom: 30px;
+    }
+
+    .card-head h2 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+      letter-spacing: 0;
+    }
+
+    .card-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    form {
+      display: grid;
+      gap: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      font-weight: 750;
+      color: #17334c;
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .field-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      width: 32px;
+      height: 32px;
+      transform: translateY(-50%);
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+
+    .field-icon img {
+      max-width: 32px;
+      max-height: 32px;
+      object-fit: contain;
+      display: block;
+    }
+
+    select,
+    input {
+      width: 100%;
+      min-height: 58px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 82px 0 58px;
+      color: var(--ink);
+      background: #fbfdff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--brand);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(7, 95, 155, .13);
+    }
+
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      width: 68px;
+      height: 38px;
+      transform: translateY(-50%);
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--brand-dark);
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .password-toggle:hover {
+      background: var(--brand-soft);
+    }
+
+    .primary-btn {
+      min-height: 58px;
+      border: 0;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0876b2, #065f97);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 850;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(7, 95, 155, .27);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+      box-shadow: 0 18px 34px rgba(7, 95, 155, .32);
+    }
+
+    .primary-btn:disabled {
+      cursor: wait;
+      opacity: .72;
+      transform: none;
+    }
+
+    .message {
+      min-height: 24px;
+      margin-top: 4px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .message.success {
+      color: var(--success);
+    }
+
+    .app-screen {
+      min-height: 100vh;
+      background: var(--canvas);
+      color: var(--ink);
+      display: grid;
+      grid-template-rows: 100px 1fr;
+    }
+
+    .app-topbar {
+      height: 100px;
+      background: linear-gradient(90deg, var(--brand-deep), #0a6f9f);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0 40px;
+      box-shadow: 0 2px 14px rgba(4, 29, 45, .18);
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .menu-toggle {
+      display: block;
+      width: 52px;
+      height: 52px;
+      border: 1px solid rgba(255, 255, 255, .36);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .08);
+      color: #fff;
+      cursor: pointer;
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .app-logo {
+      width: 108px;
+      height: 56px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .95);
+      padding: 6px;
+    }
+
+    .app-title small {
+      display: block;
+      color: #78e7ff;
+      font-size: .78rem;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .app-title h1 {
+      margin: 0;
+      color: #fff;
+      font-size: 1.45rem;
+      line-height: 1.1;
+    }
+
+    .app-title span {
+      display: block;
+      margin-top: 8px;
+      color: rgba(255, 255, 255, .86);
+      font-size: .92rem;
+    }
+
+    .user-box {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 12px;
+      text-align: right;
+      min-width: 190px;
+    }
+
+    .user-box strong {
+      display: block;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .user-box span {
+      display: block;
+      margin-top: 4px;
+      color: #c7f3ff;
+      font-size: .8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .avatar-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 0 0 auto;
+    }
+
+    .avatar-trigger {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      line-height: 0;
+    }
+
+    .logout-btn {
+      margin-top: 0;
+      padding: 0;
+      border: 0;
+      border-bottom: 1px solid #fff;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .app-body {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      transition: grid-template-columns .18s ease;
+    }
+
+    .app-screen.sidebar-expanded .app-body {
+      grid-template-columns: 220px 1fr;
+    }
+
+    .module-sidebar {
+      background: var(--side);
+      border-right: 1px solid #d2e1e9;
+      padding: 18px 10px;
+      overflow: hidden;
+    }
+
+    .module-sidebar h2 {
+      margin: 0 0 28px;
+      color: #496575;
+      font-size: .9rem;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .module-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .module-link {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 0;
+      background: transparent;
+      color: #14344c;
+      cursor: pointer;
+      text-align: left;
+      padding: 4px 2px;
+      font-size: 1rem;
+      border-radius: 8px;
+    }
+
+    .module-link strong,
+    .module-link small {
+      display: block;
+    }
+
+    .module-link small {
+      margin-top: 4px;
+      color: #6b7e8c;
+      font-size: .76rem;
+      line-height: 1.3;
+    }
+
+    .module-link.module-logistica {
+      min-height: 58px;
+      align-items: center;
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: 10px;
+      padding: 8px 4px;
+      color: #14344c;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .module-link.module-logistica:hover,
+    .module-link.module-logistica.is-active {
+      color: var(--brand);
+      transform: none;
+    }
+
+    .module-logistica .module-card-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      font-size: 1.65rem;
+    }
+
+    .module-logistica .module-copy strong {
+      font-size: .98rem;
+      letter-spacing: .02em;
+    }
+
+    .module-logistica .module-copy small {
+      color: #6b7e8c;
+      font-size: .72rem;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .module-sidebar {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    /* Igual que el fix de .group-items: esto es solo para el riel colapsado
+       (solo iconos) del escritorio. Sin el :not(.is-mobile-layout), esta regla
+       ocultaba el texto de TODOS los enlaces del menu lateral en movil (no solo
+       de un grupo) — se veian los iconos pero ningun texto, o nada si el icono
+       tambien fallaba. */
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .module-sidebar h2,
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .module-copy,
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .module-link > span:not(.module-card-icon) {
+      display: none;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .module-link {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .module-link:hover,
+    .module-link.is-active {
+      color: var(--brand);
+    }
+
+    .module-link img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .module-link .module-symbol {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      font-size: 1.55rem;
+      line-height: 1;
+    }
+
+    .module-workspace {
+      min-width: 0;
+      min-height: calc(100vh - 100px);
+      background: #f2f7fb;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .workspace-head {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 22px 32px;
+      border-bottom: 1px solid #dce7ee;
+      background: rgba(255, 255, 255, .56);
+    }
+
+    .workspace-head h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      color: #12324a;
+    }
+
+    .workspace-head span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .blank-panel {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: #7b8fa0;
+      text-align: center;
+    }
+
+    .blank-panel.module-host {
+      display: block;
+      padding: 0;
+      text-align: left;
+      background: #fff;
+      overflow: auto;
+      position: relative;
+    }
+
+    .module-frame {
+      width: 100%;
+      height: 100%;
+      min-height: calc(100vh - 174px);
+      border: 0;
+      display: block;
+      background: #fff;
+      transform-origin: top left;
+    }
+
+    .blank-panel p {
+      margin: 0;
+      max-width: 520px;
+      line-height: 1.55;
+    }
+
+    .bottom-nav {
+      display: none;
+    }
+
+    .content-zoom-float {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      border: 1px solid #c7d8e4;
+      border-radius: 999px;
+      padding: 5px;
+      box-shadow: 0 10px 26px rgba(6, 43, 73, .18);
+    }
+
+    .content-zoom-float[hidden] {
+      display: none;
+    }
+
+    .content-zoom-float button {
+      min-width: 36px;
+      height: 36px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 0;
+      background: transparent;
+      color: #12324a;
+      font-weight: 900;
+      font-size: .85rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .content-zoom-float button:hover {
+      background: #eef6fb;
+    }
+
+    .content-zoom-float button:disabled {
+      opacity: .35;
+      cursor: default;
+    }
+
+    #zoomResetBtn {
+      min-width: 48px;
+      color: #506b80;
+      font-weight: 800;
+    }
+
+
+
+    html,
+    body {
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    .app-screen {
+      min-height: 100vh;
+      background: var(--canvas);
+      color: var(--ink);
+      display: grid;
+      grid-template-rows: 72px 1fr;
+    }
+
+    .app-topbar {
+      height: 72px;
+    }
+
+    .app-title small,
+    .app-title span {
+      display: none;
+    }
+
+    .app-title h1 {
+      font-size: 1.18rem;
+    }
+
+    .module-sidebar {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+
+    .module-sidebar h2,
+    .workspace-head {
+      display: none;
+    }
+
+    .module-workspace {
+      min-height: calc(100vh - 72px);
+      grid-template-rows: 1fr;
+    }
+
+    .module-frame {
+      min-height: calc(100vh - 72px);
+    }
+
+    .module-group {
+      border-bottom: 1px solid rgba(20,52,76,.08);
+      padding-bottom: 10px;
+    }
+
+    .group-toggle {
+      width: 100%;
+      min-height: 50px;
+      border: 0;
+      background: rgba(7, 95, 155, .08);
+      color: #075f9b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 7px 10px;
+      text-align: left;
+      font-weight: 900;
+    }
+
+    .group-toggle:hover,
+    .module-group.is-open .group-toggle {
+      color: var(--brand);
+      background: rgba(7,95,155,.13);
+    }
+
+    .group-icon,
+    .module-symbol {
+      width: 34px;
+      min-width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+    }    .group-icon img {
+      width: 30px;
+      height: 30px;
+      object-fit: contain;
+    }
+
+
+
+    .group-name {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .group-caret {
+      font-size: .8rem;
+      transition: transform .18s ease;
+    }
+
+    .module-group.is-open .group-caret {
+      transform: rotate(90deg);
+    }
+
+    .group-items {
+      display: none;
+      padding: 8px 0 4px 20px;
+      gap: 6px;
+    }
+
+    .module-group.is-open .group-items {
+      display: grid;
+    }
+
+    .group-items .module-link {
+      min-height: 42px;
+      font-size: .92rem;
+      padding: 5px 4px;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .app-body {
+      grid-template-columns: 74px 1fr;
+    }
+
+    /* Este ocultamiento es solo para el riel colapsado (solo iconos) del escritorio.
+       En movil el menu siempre usa el cajon completo (.sidebar-open), nunca el riel
+       colapsado: sin el :not(.is-mobile-layout) aqui, esta regla ganaba por
+       especificidad y dejaba vacios los submenus (ej. "Control de accesos") aunque
+       el grupo estuviera abierto. */
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .group-name,
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .group-caret,
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .group-items {
+      display: none;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.sidebar-expanded) .group-toggle {
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .app-screen.sidebar-expanded .group-name,
+    .app-screen.sidebar-expanded .group-caret {
+      display: inline-flex;
+    }
+
+    @media (max-width: 850px) {
+      .app-screen {
+        grid-template-rows: 72px 1fr;
+      }
+
+      .app-topbar {
+        height: 72px;
+      }
+
+      .app-body {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .module-sidebar {
+        display: block;
+        position: fixed;
+        top: 72px;
+        left: 0;
+        bottom: 0;
+        width: min(82vw, 320px);
+        z-index: 40;
+        transform: translateX(-105%);
+        transition: transform .18s ease;
+        box-shadow: 18px 0 50px rgba(0,0,0,.22);
+      }
+
+      .app-screen.sidebar-open .module-sidebar {
+        transform: translateX(0);
+      }
+
+      .app-screen.sidebar-open::after {
+        content: "";
+        position: fixed;
+        inset: 72px 0 0;
+        background: rgba(0,0,0,.22);
+        z-index: 30;
+      }
+
+      .module-workspace {
+        min-height: calc(100vh - 72px);
+        padding-bottom: 0;
+      }
+
+      .module-frame {
+        min-height: calc(100vh - 72px);
+      }
+
+      .bottom-nav {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 850px) {
+      .login-screen {
+        place-items: start center;
+      }
+
+      .login-shell {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .brand-panel {
+        min-height: auto;
+        align-items: center;
+        text-align: center;
+        padding-top: 8px;
+      }
+
+      .logo-mark {
+        width: min(320px, 100%);
+        margin-bottom: 18px;
+      }
+
+      .brand-panel p {
+        display: none;
+      }
+
+      .app-screen {
+        grid-template-rows: 86px 1fr;
+      }
+
+      .app-topbar {
+        height: 86px;
+        padding: 0 14px;
+      }
+
+      .menu-toggle {
+        display: block;
+      }
+
+      .app-logo {
+        width: 62px;
+        height: 50px;
+      }
+
+      .app-title small,
+      .app-title span {
+        display: none;
+      }
+
+      .app-title h1 {
+        font-size: 1.1rem;
+      }
+
+      .user-box {
+        min-width: 128px;
+      }
+
+      .user-box strong {
+        font-size: .9rem;
+      }
+
+      .app-body {
+        display: block;
+      }
+
+      .module-sidebar {
+        display: none;
+      }
+
+      .module-workspace {
+        min-height: calc(100vh - 86px);
+        padding-bottom: 82px;
+      }
+
+      .workspace-head {
+        display: none;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        min-height: 64px;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        gap: 4px;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, .96);
+        border-top: 1px solid #d7e1e8;
+        z-index: 10;
+      }
+
+      .content-zoom-float {
+        bottom: calc(76px + env(safe-area-inset-bottom));
+        right: 12px;
+      }
+
+      .bottom-nav .module-link {
+        min-height: 54px;
+        justify-content: center;
+        gap: 3px;
+        flex-direction: column;
+        font-size: .74rem;
+        padding: 4px;
+      }
+
+      .bottom-nav .module-link img {
+        width: 30px;
+        height: 30px;
+      }
+
+      .bottom-nav .module-link.module-logistica {
+        min-height: 58px;
+        padding: 4px;
+        background: transparent;
+        box-shadow: none;
+        color: #14344c;
+      }
+
+      .bottom-nav .module-logistica .module-card-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        font-size: 1rem;
+        box-shadow: none;
+      }
+
+      .bottom-nav .module-logistica .module-copy strong {
+        font-size: .74rem;
+        color: #14344c;
+      }
+
+      .bottom-nav .module-logistica .module-copy small {
+        display: none;
+      }
+
+      .module-frame {
+        min-height: calc(100vh - 168px);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .login-screen {
+        padding: 18px 12px;
+      }
+
+      .login-card {
+        padding: 24px 18px;
+      }
+    }
+
+    /* Final responsive overrides for the unified module menu. */
+    @media (max-width: 850px) {
+      .login-shell {
+        width: min(100%, 620px);
+        justify-items: center;
+      }
+
+      .brand-panel {
+        width: min(100%, 400px);
+        padding-top: 0;
+      }
+
+      .logo-mark {
+        width: min(100%, 400px);
+        margin-bottom: 0;
+      }
+
+      .app-body {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .module-sidebar {
+        display: block;
+        position: fixed;
+        top: 86px;
+        left: 0;
+        bottom: 0;
+        width: min(84vw, 260px);
+        z-index: 40;
+        transform: translateX(-105%);
+        transition: transform .18s ease;
+        box-shadow: 18px 0 50px rgba(0, 0, 0, .22);
+      }
+
+      .app-screen.sidebar-open .module-sidebar {
+        transform: translateX(0);
+      }
+
+      .app-screen.sidebar-open .group-name,
+      .app-screen.sidebar-open .group-caret {
+        display: inline-flex;
+      }
+
+      .app-screen.sidebar-open .module-group.is-open .group-items {
+        display: grid;
+      }
+
+      .app-screen.sidebar-open .group-toggle {
+        justify-content: flex-start;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+
+      .module-workspace {
+        min-height: calc(100dvh - 86px);
+        padding-bottom: calc(76px + env(safe-area-inset-bottom));
+      }
+
+      .module-frame {
+        min-height: calc(100dvh - 162px - env(safe-area-inset-bottom));
+      }
+
+      .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        min-height: 66px;
+        display: grid !important;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(68px, 1fr);
+        gap: 4px;
+        padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+        background: rgba(255, 255, 255, .97);
+        border-top: 1px solid #d7e1e8;
+        z-index: 25;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: thin;
+      }
+
+      .bottom-nav .module-link {
+        min-width: 68px;
+        min-height: 54px;
+        justify-content: center;
+        gap: 3px;
+        flex-direction: column;
+        font-size: .72rem;
+        line-height: 1.12;
+        padding: 4px 2px;
+        white-space: normal;
+      }
+
+      .bottom-nav .module-link img,
+      .bottom-nav .module-symbol {
+        width: 28px;
+        height: 28px;
+        font-size: 1.25rem;
+      }
+
+      .bottom-nav .module-link span:last-child {
+        display: block;
+        max-width: 74px;
+        text-align: center;
+      }
+
+      .bottom-nav .module-link.is-active {
+        color: var(--brand);
+        background: rgba(7, 95, 155, .08);
+      }
+    }
+
+    @media (max-width: 850px) and (orientation: landscape) {
+      .app-screen {
+        grid-template-rows: 64px 1fr;
+      }
+
+      .app-topbar {
+        height: 64px;
+      }
+
+      .module-sidebar {
+        top: 64px;
+        width: min(58vw, 280px);
+      }
+
+      .module-workspace {
+        min-height: calc(100dvh - 64px);
+        padding-bottom: calc(64px + env(safe-area-inset-bottom));
+      }
+
+      .module-frame {
+        min-height: calc(100dvh - 128px - env(safe-area-inset-bottom));
+      }
+
+      .bottom-nav {
+        min-height: 58px;
+        grid-auto-columns: minmax(84px, 1fr);
+        padding-top: 6px;
+        padding-bottom: calc(6px + env(safe-area-inset-bottom));
+      }
+
+      .bottom-nav .module-link {
+        min-height: 46px;
+        flex-direction: row;
+        font-size: .76rem;
+        gap: 6px;
+      }
+
+      .bottom-nav .module-link span:last-child {
+        max-width: 92px;
+        text-align: left;
+      }
+    }
+
+
+    /* Final mobile/app corrections: Android, iOS, PWA and touch devices. */
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 10px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .14);
+      color: #fff;
+      font-size: .76rem;
+      font-weight: 800;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    .connection-status .status-icon {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      font-size: .78rem;
+      line-height: 1;
+    }
+
+    .connection-status.ok .status-icon { background: #16a34a; color: #fff; }
+    .connection-status.warn .status-icon { background: #f59e0b; color: #271800; }
+    .connection-status.err .status-icon { background: #dc2626; color: #fff; }
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    .app-screen.is-mobile-layout {
+      min-height: 100dvh;
+      grid-template-rows: 86px 1fr;
+    }
+
+    .app-screen.is-mobile-layout .app-topbar {
+      height: 86px;
+      padding: 0 12px;
+    }
+
+    .app-screen.is-mobile-layout .app-body {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      width: 100vw;
+      min-width: 0;
+    }
+
+    .app-screen.is-mobile-layout .module-sidebar {
+      display: block !important;
+      position: fixed !important;
+      top: 86px;
+      left: 0;
+      bottom: 0;
+      width: min(84vw, 280px);
+      z-index: 40;
+      transform: translateX(-105%);
+      transition: transform .18s ease;
+      box-shadow: 18px 0 50px rgba(0, 0, 0, .22);
+    }
+
+    .app-screen.is-mobile-layout.sidebar-open .module-sidebar {
+      transform: translateX(0);
+    }
+
+    .app-screen.is-mobile-layout.sidebar-open::after {
+      content: "";
+      position: fixed;
+      inset: 86px 0 0;
+      background: rgba(0, 0, 0, .22);
+      z-index: 30;
+    }
+
+    .app-screen.is-mobile-layout .module-workspace {
+      width: 100vw;
+      min-width: 0;
+      min-height: calc(var(--app-height, 100dvh) - 86px);
+      padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    }
+
+    .app-screen.is-mobile-layout .blank-panel.module-host {
+      width: 100%;
+      height: calc(var(--app-height, 100dvh) - 162px - env(safe-area-inset-bottom));
+      overflow: hidden;
+    }
+
+    .app-screen.is-mobile-layout .module-frame {
+      width: 100%;
+      height: 100%;
+      min-height: calc(var(--app-height, 100dvh) - 162px - env(safe-area-inset-bottom));
+      display: block;
+    }
+
+    .app-screen.is-mobile-layout .app-topbar,
+    .app-screen.is-mobile-layout .bottom-nav {
+      flex-shrink: 0;
+      touch-action: manipulation;
+      overscroll-behavior: contain;
+      transform: translateZ(0);
+    }
+
+    .app-screen.is-mobile-layout .module-workspace,
+    .app-screen.is-mobile-layout .blank-panel.module-host {
+      overflow: hidden;
+      overscroll-behavior: contain;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 62px;
+      display: grid !important;
+      grid-template-columns: repeat(var(--bottom-count, 3), minmax(0, 1fr));
+      gap: 0;
+      padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+      background: #e9f6fb;
+      border-top: 2px solid #075f9b;
+      z-index: 25;
+      overflow-x: hidden;
+      overscroll-behavior-x: contain;
+      scrollbar-width: thin;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link {
+      min-width: 0;
+      width: 100%;
+      min-height: 46px;
+      justify-content: center;
+      gap: 3px;
+      flex-direction: column;
+      font-size: .74rem;
+      font-weight: 700;
+      line-height: 1.1;
+      padding: 3px 4px;
+      white-space: normal;
+      border-right: 1px solid #8ab8d0;
+      box-shadow: inset -1px 0 0 rgba(3, 56, 91, .12);
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link:last-child {
+      border-right: 0;
+      box-shadow: none;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link img,
+    .app-screen.is-mobile-layout .bottom-nav .module-symbol {
+      width: 24px;
+      height: 24px;
+      font-size: 1.15rem;
+      object-fit: contain;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link span:last-child {
+      display: block;
+      max-width: 100%;
+      text-align: center;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link.is-active {
+      color: var(--brand);
+      background: rgba(7, 95, 155, .08);
+    }
+
+    @media (orientation: landscape) {
+      .app-screen.is-mobile-layout {
+        grid-template-rows: 64px 1fr;
+      }
+
+      .app-screen.is-mobile-layout .app-topbar {
+        height: 64px;
+      }
+
+      .app-screen.is-mobile-layout .module-sidebar {
+        top: 64px;
+        width: min(58vw, 280px);
+      }
+
+      .app-screen.is-mobile-layout.sidebar-open::after {
+        inset: 64px 0 0;
+      }
+
+      .app-screen.is-mobile-layout .module-workspace {
+        min-height: calc(var(--app-height, 100dvh) - 64px);
+        padding-bottom: calc(86px + env(safe-area-inset-bottom));
+      }
+
+      .app-screen.is-mobile-layout .blank-panel.module-host,
+      .app-screen.is-mobile-layout .module-frame {
+        height: calc(var(--app-height, 100dvh) - 150px - env(safe-area-inset-bottom));
+        min-height: calc(var(--app-height, 100dvh) - 150px - env(safe-area-inset-bottom));
+      }
+
+      .app-screen.is-mobile-layout .bottom-nav {
+        min-height: 78px;
+        padding-top: 6px;
+        padding-bottom: calc(6px + env(safe-area-inset-bottom));
+      }
+
+      .app-screen.is-mobile-layout .bottom-nav .module-link {
+        min-height: 62px;
+        flex-direction: row;
+        font-size: .9rem;
+        gap: 8px;
+      }
+
+      .app-screen.is-mobile-layout .bottom-nav .module-link span:last-child {
+        max-width: 92px;
+        text-align: left;
+      }
+    }
+
+
+
+    .bottom-nav.is-submenu {
+      grid-template-columns: none !important;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(82px, 1fr);
+      overflow-x: auto !important;
+    }
+
+    .bottom-nav .bottom-back {
+      color: var(--brand-dark);
+      background: rgba(7,95,155,.08);
+    }
+
+    .ice-retry {
+      gap: 12px;
+      width: min(100%, 360px);
+      margin: auto;
+    }
+
+    .ice-retry-field {
+      display: grid;
+      gap: 6px;
+      width: 100%;
+      color: #35536a;
+      font-weight: 800;
+    }
+
+    .ice-retry-field input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid #c9dbe8;
+      border-radius: 10px;
+      padding: 0 12px;
+      font: inherit;
+    }
+
+    .ice-retry .primary-btn {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 10px;
+      background: #0b78ad;
+      color: #fff;
+      font: inherit;
+      font-weight: 900;
+    }
+
+    .update-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgba(0, 34, 54, 0.58);
+      backdrop-filter: blur(5px);
+    }
+
+    .update-card {
+      width: min(100%, 460px);
+      padding: 26px;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 24px 70px rgba(0, 28, 47, 0.28);
+      color: var(--text);
+    }
+
+    .update-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: #e8f6ff;
+      color: #0074a8;
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 14px;
+    }
+
+    .update-card h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.45rem, 4vw, 1.9rem);
+      line-height: 1.1;
+    }
+
+    .update-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .update-meta {
+      display: grid;
+      gap: 6px;
+      margin: 18px 0 22px;
+      padding: 14px;
+      border: 1px solid #c9deec;
+      border-radius: 12px;
+      background: #f6fbff;
+      color: #486078;
+      font-size: 0.95rem;
+    }
+
+    .update-meta strong {
+      color: #004b73;
+    }
+
+    .update-progress {
+      display: grid;
+      gap: 8px;
+      margin: 18px 0 4px;
+    }
+
+    .update-progress[hidden] {
+      display: none;
+    }
+
+    .update-progress-track {
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #d8e8f2;
+      box-shadow: inset 0 1px 2px rgba(0, 35, 56, 0.12);
+    }
+
+    .update-progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0aa8d8, #0074a8);
+      transition: width .25s ease;
+    }
+
+    .update-progress-label {
+      color: #004b73;
+      font-weight: 900;
+      font-size: .95rem;
+    }
+
+    .update-actions {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 10px;
+    }
+
+    .update-actions button {
+      min-height: 48px;
+      border: 0;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .update-later {
+      background: #eef4f8;
+      color: #496275;
+    }
+
+    .update-now {
+      background: linear-gradient(135deg, #1388bd, #006fa5);
+      color: #ffffff;
+      box-shadow: 0 14px 28px rgba(0, 111, 165, 0.22);
+    }
+
+    @media (max-width: 520px) {
+      .update-card {
+        padding: 22px 18px;
+      }
+
+      .update-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .profile-trigger {
+      display: flex;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 8px;
+      transition: background .15s ease;
+    }
+
+    .profile-trigger:hover,
+    .profile-trigger:focus-visible {
+      background: rgba(0, 0, 0, .06);
+      outline: none;
+    }
+
+    .profile-trigger-text {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0;
+    }
+
+    .header-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e8f6ff;
+      color: #0074a8;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      flex: 0 0 auto;
+      border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    .header-avatar svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .header-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .pwd-field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+
+    .pwd-field label {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .pwd-field input {
+      min-height: 46px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 1rem;
+      color: var(--ink);
+      background: #fbfdff;
+    }
+
+    .pwd-field input:focus {
+      border-color: var(--brand);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(7, 95, 155, .13);
+      outline: none;
+    }
+
+    .pwd-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pwd-input-row input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .pwd-toggle {
+      flex: 0 0 auto;
+      width: 46px;
+      min-height: 46px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: color .15s ease, border-color .15s ease;
+    }
+
+    .pwd-toggle:hover,
+    .pwd-toggle:focus-visible {
+      color: var(--brand);
+      border-color: var(--brand);
+      outline: none;
+    }
+
+    .pwd-toggle svg {
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+
+    .pwd-toggle .icon-eye-off {
+      display: none;
+    }
+
+    .pwd-toggle.is-visible .icon-eye {
+      display: none;
+    }
+
+    .pwd-toggle.is-visible .icon-eye-off {
+      display: block;
+    }
+
+    .profile-card {
+      text-align: center;
+    }
+
+    .profile-card h2 {
+      text-align: center;
+      color: #486078;
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 18px;
+    }
+
+    .profile-avatar-wrap {
+      width: 128px;
+      height: 128px;
+      margin: 0 auto 12px;
+    }
+
+    .profile-photo-preview {
+      width: 128px;
+      height: 128px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #e8f6ff;
+      border: 3px solid #ffffff;
+      box-shadow: 0 12px 28px rgba(0, 60, 90, .18), 0 0 0 1px #d7e8f2;
+      cursor: pointer;
+      display: block;
+    }
+
+    .profile-avatar-placeholder {
+      width: 128px;
+      height: 128px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #e8f6ff;
+      color: #8caebf;
+      border: 3px solid #ffffff;
+      box-shadow: 0 12px 28px rgba(0, 60, 90, .18), 0 0 0 1px #d7e8f2;
+    }
+
+    .profile-avatar-placeholder svg {
+      width: 60px;
+      height: 60px;
+    }
+
+    .profile-photo-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .profile-link {
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: .82rem;
+      font-weight: 800;
+      color: #0074a8;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .profile-link:hover {
+      text-decoration: underline;
+    }
+
+    .profile-link-danger {
+      color: #b23434;
+    }
+
+    .profile-link-sep {
+      color: #c4d5e0;
+      font-size: .8rem;
+    }
+
+    .profile-identity {
+      margin: 18px 0 22px;
+    }
+
+    .profile-identity-name {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .profile-role-badge {
+      display: inline-block;
+      padding: 5px 16px;
+      border-radius: 999px;
+      background: #eef4f8;
+      color: #486078;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .profile-actions-pro {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .profile-btn-primary {
+      min-height: 48px;
+      border: 0;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(135deg, #1388bd, #006fa5);
+      color: #ffffff;
+      box-shadow: 0 14px 28px rgba(0, 111, 165, 0.22);
+    }
+
+    .profile-btn-close {
+      min-height: 48px;
+      padding: 0 20px;
+      border: 1px solid #f3b6b6;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      background: #fff5f5;
+      color: #a32d2d;
+    }
+
+    .profile-btn-close:hover {
+      background: #ffeaea;
+    }
+
+    @media (max-width: 520px) {
+      .profile-actions-pro {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-btn-close {
+        order: 2;
+      }
+
+      .profile-btn-primary {
+        order: 1;
+      }
+    }
+
+    .photo-lightbox .lightbox-card {
+      position: relative;
+      width: min(90vw, 380px);
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .lightbox-img {
+      width: 100%;
+      height: auto;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 14px;
+      display: block;
+      background: #fff;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .4);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: -14px;
+      right: -14px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #fff;
+      color: #33495c;
+      border: 1px solid #d7e8f2;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .3);
+    }
+
+    .lightbox-close:hover {
+      background: #eef4f8;
+    }
+
+    .crop-card {
+      text-align: center;
+    }
+
+    .crop-card h2 {
+      text-align: center;
+      margin-bottom: 6px;
+    }
+
+    .crop-card p {
+      margin-bottom: 16px;
+    }
+
+    .crop-stage {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #0b2436;
+      cursor: grab;
+      touch-action: none;
+      box-shadow: 0 0 0 4px #ffffff, 0 0 0 5px #d7e8f2, 0 14px 30px rgba(0, 60, 90, .25);
+    }
+
+    .crop-stage:active {
+      cursor: grabbing;
+    }
+
+    .crop-stage img {
+      position: absolute;
+      max-width: none;
+      max-height: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+
+    .crop-zoom-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 auto 18px;
+      color: #7fa8bd;
+      font-size: 1rem;
+    }
+
+    .crop-zoom {
+      width: 200px;
+      accent-color: #0074a8;
+    }
+
+    /* Fixed mobile shell: header and bottom navigation stay anchored; only module content scrolls. */
+    .app-screen.is-mobile-layout {
+      height: var(--app-height, 100dvh) !important;
+      min-height: var(--app-height, 100dvh) !important;
+      overflow: hidden !important;
+      grid-template-rows: 1fr !important;
+    }
+
+    .app-screen.is-mobile-layout .app-topbar {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      z-index: 80 !important;
+      width: 100vw !important;
+      min-width: 0 !important;
+      transform: translateZ(0);
+    }
+
+    .app-screen.is-mobile-layout .app-body {
+      height: var(--app-height, 100dvh) !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      padding-top: 86px !important;
+      padding-bottom: calc(86px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .app-screen.is-mobile-layout .module-workspace {
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      padding-bottom: 0 !important;
+    }
+
+    .app-screen.is-mobile-layout .blank-panel.module-host,
+    .app-screen.is-mobile-layout .module-frame {
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: auto !important;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav {
+      position: fixed !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      z-index: 90 !important;
+      width: 100vw !important;
+      transform: translateZ(0);
+    }
+
+    @media (orientation: landscape) {
+      .app-screen.is-mobile-layout .app-body {
+        padding-top: 64px !important;
+        padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+      }
+    }
+
+    body:has(.app-screen:not(.is-hidden)) {
+      overflow: hidden;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) {
+      height: 100vh !important;
+      min-height: 100vh !important;
+      overflow: hidden !important;
+      grid-template-rows: 72px minmax(0, 1fr) !important;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .app-topbar {
+      position: relative;
+      z-index: 80;
+      flex-shrink: 0;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .app-body {
+      height: calc(100vh - 72px) !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-sidebar {
+      height: calc(100vh - 72px) !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-list {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      align-content: start;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-list::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .module-list {
+      gap: 8px;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .module-group {
+      padding-bottom: 7px;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .group-toggle {
+      min-height: 44px;
+      padding: 6px 8px;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .group-items {
+      gap: 4px;
+      padding: 5px 0 3px 16px;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .group-items .module-link {
+      min-height: 36px;
+      padding: 3px 4px;
+      font-size: .88rem;
+    }
+
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .group-icon,
+    .app-screen:not(.is-mobile-layout).sidebar-expanded .module-symbol {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      font-size: 1.2rem;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-workspace {
+      height: calc(100vh - 72px) !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      grid-template-rows: 1fr !important;
+    }
+
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .blank-panel.module-host,
+    .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-frame {
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: auto !important;
+    }
+
+    @supports (height: 100dvh) {
+      .app-screen:not(.is-mobile-layout):not(.is-hidden) {
+        height: 100dvh !important;
+        min-height: 100dvh !important;
+      }
+
+      .app-screen:not(.is-mobile-layout):not(.is-hidden) .app-body,
+      .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-sidebar,
+      .app-screen:not(.is-mobile-layout):not(.is-hidden) .module-workspace {
+        height: calc(100dvh - 72px) !important;
+      }
+    }
+
+    .app-screen.is-mobile-layout .module-sidebar {
+      overflow: hidden !important;
+    }
+
+    .app-screen.is-mobile-layout .module-list {
+      display: flex !important;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-content: flex-start;
+      height: auto !important;
+      max-height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .app-screen.is-mobile-layout .module-group {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+
+    .app-screen.is-mobile-layout .module-list::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    /* Consolida en un solo valor las multiples reglas anteriores (64px, 66px, 58px,
+       90px, 78px repartidas en distintos media queries) que causaban que la barra
+       inferior se viera con altura distinta segun el dispositivo. Esta regla, al ir
+       al final y usar box-sizing:content-box, gana siempre: el area visual del menu
+       queda identica en todos los moviles; solo el colchon extra por gesture-bar
+       (env(safe-area-inset-bottom)) puede variar, como corresponde. */
+    .app-screen.is-mobile-layout .bottom-nav {
+      box-sizing: content-box !important;
+      height: 64px !important;
+      min-height: 64px !important;
+      max-height: 64px !important;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link {
+      height: 52px !important;
+      min-height: 52px !important;
+      max-height: 52px !important;
+      font-size: .66rem !important;
+      gap: 3px !important;
+    }
+
+    .app-screen.is-mobile-layout .bottom-nav .module-link img,
+    .app-screen.is-mobile-layout .bottom-nav .module-symbol {
+      width: 22px !important;
+      height: 22px !important;
+      font-size: 1.05rem !important;
+    }
+
+    /* Encabezado mas compacto y ajustado en movil (antes llegaba a medir 86px). */
+    .app-screen.is-mobile-layout {
+      --mobile-header-height: 56px;
+    }
+
+    .app-screen.is-mobile-layout .app-topbar {
+      height: var(--mobile-header-height) !important;
+      padding: 0 10px !important;
+      overflow: hidden !important;
+    }
+
+    .app-screen.is-mobile-layout .app-title {
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+      overflow: hidden !important;
+    }
+
+    .app-screen.is-mobile-layout .app-body {
+      padding-top: var(--mobile-header-height) !important;
+      padding-bottom: calc(var(--mobile-header-height) + env(safe-area-inset-bottom)) !important;
+    }
+
+    .app-screen.is-mobile-layout .menu-toggle {
+      width: 38px !important;
+      height: 38px !important;
+      font-size: 1.35rem !important;
+    }
+
+    .app-screen.is-mobile-layout .app-logo {
+      width: 46px !important;
+      height: 36px !important;
+      padding: 4px !important;
+    }
+
+    .app-screen.is-mobile-layout .app-brand {
+      gap: 10px !important;
+    }
+
+    .app-screen.is-mobile-layout .app-title h1 {
+      font-size: .95rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .app-screen.is-mobile-layout .app-title small,
+    .app-screen.is-mobile-layout .app-title span {
+      display: none !important;
+    }
+
+    .app-screen.is-mobile-layout .user-box {
+      min-width: 0 !important;
+      flex: 0 0 auto !important;
+      gap: 0 !important;
+    }
+
+    /* En movil/app instalada se oculta nombre y rol para no saturar el
+       encabezado: esa info ya se ve al tocar el icono (Mi perfil). */
+    .app-screen.is-mobile-layout .profile-trigger {
+      display: none !important;
+    }
+
+    .app-screen.is-mobile-layout .logout-btn {
+      font-size: .68rem !important;
+      margin-top: 0 !important;
+    }
+
+    .app-screen.is-mobile-layout .avatar-stack {
+      gap: 2px !important;
+    }
+
+    .app-screen.is-mobile-layout .header-avatar {
+      width: 30px !important;
+      height: 30px !important;
+    }
+
+    .app-screen.is-mobile-layout .header-avatar svg {
+      width: 18px !important;
+      height: 18px !important;
+    }
+
+    /* Oculta el control de zoom con botones en movil: ahi el zoom se hace con el
+       gesto tactil nativo (pellizcar), no con botones. */
+    .content-zoom-float {
+      display: none !important;
+    }
+
+    /* El contenedor del contenido siempre permite desplazarse en movil (no solo
+       detectando "zoom activo", ya que la app instalada no siempre reporta el
+       nivel de zoom de forma confiable). Si el contenido cabe sin ampliar, esto
+       no genera scroll ni cambia nada visualmente; solo se activa cuando el
+       contenido es mas grande que el espacio visible (por ejemplo, al hacer
+       zoom con el gesto tactil). */
+    .app-screen.is-mobile-layout .module-workspace,
+    .app-screen.is-mobile-layout .blank-panel.module-host {
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y pinch-zoom;
+    }
+
+  </style>
+</head>
+<body>
+  <main class="login-screen" id="loginScreen">
+    <section class="login-shell">
+      <div class="brand-panel" aria-label="OPAUSTRO">
+        <img class="logo-mark" src="../Recuros_imagenes/logo_color.png?v=1.0.0" alt="OPAUSTRO">
+      </div>
+
+      <section class="login-card" aria-label="Inicio de sesi&oacute;n">
+        <div class="card-head">
+          <h2>Iniciar sesi&oacute;n</h2>
+          <p>Selecciona tu rol, usuario e ingresa tu contrase&ntilde;a.</p>
+        </div>
+
+        <form id="loginForm" autocomplete="off">
+          <label>
+            Rol
+            <span class="field">
+              <span class="field-icon" aria-hidden="true"><img src="../Recuros_imagenes/rol.png?v=1.0.0" alt=""></span>
+              <select id="role" name="role" required>
+                <option value="">Seleccione un rol</option>
+              </select>
+            </span>
+          </label>
+
+          <label>
+            Usuario
+            <span class="field">
+              <span class="field-icon" aria-hidden="true"><img src="../Recuros_imagenes/usuario.png?v=1.0.0" alt=""></span>
+              <select id="user" name="user" required disabled>
+                <option value="">Seleccione su usuario</option>
+              </select>
+              <input id="userTyped" name="userTyped" type="text" autocomplete="username" placeholder="Digite su usuario" disabled hidden>
+            </span>
+          </label>
+
+          <label>
+            Contrase&ntilde;a
+            <span class="field">
+              <span class="field-icon" aria-hidden="true"><img src="../Recuros_imagenes/contrase&ntilde;a.png?v=1.0.0" alt=""></span>
+              <input id="password" name="password" type="password" required>
+              <button class="password-toggle" type="button" id="togglePassword" title="Mostrar u ocultar contrase&ntilde;a" aria-label="Mostrar u ocultar contrase&ntilde;a">Ver</button>
+            </span>
+          </label>
+
+          <button class="primary-btn" id="submitButton" type="submit">Ingresar</button>
+          <div class="message" id="message" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+    </section>
+    <p class="login-footer">&copy; OPAUSTRO-ECUADOR &middot; v<span id="loginFooterVersion"></span></p>
+  </main>
+
+  <section class="app-screen is-hidden" id="appScreen" aria-label="M&oacute;dulos">
+    <header class="app-topbar">
+      <div class="app-brand">
+        <button class="menu-toggle" type="button" aria-label="Men&uacute;">☰</button>
+        <img class="app-logo" src="../Recuros_imagenes/logo_color.png?v=1.0.0" alt="OPAUSTRO">
+        <div class="app-title">
+          <h1 id="topModuleTitle">OPAUSTRO</h1><span class="connection-status warn" id="connectionStatus" title="Estado de conexión"><span class="status-icon">⚠</span><span class="status-text">Verificando</span></span>
+        </div>
+      </div>
+
+      <div class="user-box">
+        <button class="profile-trigger" type="button" id="profileButton" aria-haspopup="dialog" title="Ver perfil y cambiar contrase&ntilde;a">
+          <span class="profile-trigger-text">
+            <strong id="sessionUser">Usuario</strong>
+            <span id="sessionRole">Rol</span>
+          </span>
+        </button>
+        <div class="avatar-stack">
+          <button class="avatar-trigger" type="button" id="avatarButton" aria-haspopup="dialog" title="Ver perfil y cambiar contrase&ntilde;a">
+            <span class="header-avatar" id="headerAvatar">
+              <svg id="headerAvatarIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+              <img id="headerAvatarImg" alt="" style="display:none;">
+            </span>
+          </button>
+          <button class="logout-btn" type="button" id="logoutButton">Cerrar sesi&oacute;n</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <aside class="module-sidebar" aria-label="Lista de m&oacute;dulos">
+        
+        <nav class="module-list" id="sideModules"></nav>
+      </aside>
+
+      <main class="module-workspace">
+        <div class="workspace-head">
+          <h2 id="activeModuleTitle">OPAUSTRO</h2>
+          <span id="activeModuleMode">Seleccione una opci&oacute;n</span>
+        </div>
+        <section class="blank-panel" id="blankPanel">
+          <p>Seleccione un m&oacute;dulo para continuar.</p>
+        </section>
+        <div class="content-zoom-float" id="contentZoomFloat" hidden aria-label="Zoom del contenido">
+          <button type="button" id="zoomOutBtn" title="Reducir zoom" aria-label="Reducir zoom">&#8722;</button>
+          <button type="button" id="zoomResetBtn" title="Restablecer zoom" aria-label="Restablecer zoom">100%</button>
+          <button type="button" id="zoomInBtn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
+        </div>
+      </main>
+    </div>
+
+    <nav class="bottom-nav" id="bottomModules" aria-label="M&oacute;dulos"></nav>
+  </section>
+
+  <script>
+    const LOGIN_API_URL = 'https://script.google.com/macros/s/AKfycbyjvPzzulLU9o0JacZjLBYeKSgwwR_qvOuL1WTKO46hOw5_ibnAXeFc6HR3HeF9myzS/exec';
+    const ICE_API_URL = '';
+    const INTERNAL_API_KEY = 'OPA-INTERNAL-2026';
+    function isLocalEnv() {
+      return /^(localhost|127\.)/i.test(location.hostname);
+    }
+    function appEnv() {
+      return isLocalEnv() ? 'local' : 'prod';
+    }
+    const SESSION_KEY = 'opaustro_session';
+    const ACTIVE_MODULE_KEY = 'opaustro_active_module';
+    const SESSION_TIMEOUT_MS = 10 * 60 * 1000;
+    const APP_VERSION = '1.0.9';
+    const APP_RELEASE = 'OPAUSTRO v1.0.9';
+    const APP_RELEASE_KEY = '1.0.9';
+    const RELEASE_KEY = 'opaustro_release_version';
+    let inactivityTimer = null;
+    let heartbeatTimer = null;
+    let icePreparationPromise = null;
+
+    function readStored(key) {
+      try { return localStorage.getItem(key) || sessionStorage.getItem(key); }
+      catch (error) { try { return sessionStorage.getItem(key); } catch (inner) { return null; } }
+    }
+
+    function writeStored(key, value) {
+      try { localStorage.setItem(key, value); } catch (error) {}
+      try { sessionStorage.setItem(key, value); } catch (error) {}
+    }
+
+    function removeStored(key) {
+      try { localStorage.removeItem(key); } catch (error) {}
+      try { sessionStorage.removeItem(key); } catch (error) {}
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", "\"": "&quot;" })[char]);
+    }
+
+    async function readJsonResponse(response, serviceName) {
+      const raw = await response.text();
+      const trimmed = String(raw || "").trim();
+      if (!trimmed) throw new Error((serviceName || "API") + " no devolvió datos.");
+      if (trimmed[0] === "<") throw new Error((serviceName || "API") + " devolvió HTML en lugar de JSON. Verifica que la URL /exec publicada sea correcta.");
+      try {
+        return JSON.parse(trimmed);
+      } catch (error) {
+        throw new Error((serviceName || "API") + " no devolvió JSON válido: " + trimmed.slice(0, 140));
+      }
+    }
+    function isInstalledApp() {
+      return window.matchMedia("(display-mode: standalone)").matches ||
+        window.matchMedia("(display-mode: fullscreen)").matches ||
+        window.navigator.standalone === true;
+    }
+
+    function releaseKeyOf(release, current) {
+      const raw = String((release && (release.releaseKey || release.channelVersion)) || current || APP_VERSION || APP_RELEASE_KEY);
+      const match = raw.match(/\d+(?:\.\d+)*/);
+      return match ? match[0] : raw;
+    }
+
+    function showUpdatePrompt(release, current, releaseKey, autoUpdate) {
+      const previous = escapeHtml(readStored(RELEASE_KEY) || "");
+      const newVersion = escapeHtml(current || "");
+      const publishedAt = escapeHtml(release && release.publishedAt ? release.publishedAt : "");
+      // Solo numero de version y fecha, nunca el detalle/label de que se hizo
+      // (eso queda para quien administre, no para esta pantalla).
+      const metaHtml = newVersion ? `
+          <div class="update-meta">
+            ${previous ? `<span>Actual: ${previous}</span>` : ""}
+            <strong>Nueva: ${newVersion}</strong>
+            ${publishedAt ? `<span>Publicada: ${publishedAt}</span>` : ""}
+          </div>` : "";
+      const overlay = document.createElement("div");
+      overlay.className = "update-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.innerHTML = `
+        <div class="update-card">
+          <div class="update-icon">↻</div>
+          <h2>${autoUpdate ? "Actualizando OPAUSTRO" : "Actualización disponible"}</h2>
+          <p>${autoUpdate ? "La web se está actualizando automáticamente. Espere un momento." : "Hay una nueva versión de OPAUSTRO lista para instalar antes de iniciar sesión."}</p>
+          ${metaHtml}
+          <div class="update-progress" ${autoUpdate ? "" : "hidden"}>
+            <div class="update-progress-track" aria-hidden="true"><div class="update-progress-bar"></div></div>
+            <div class="update-progress-label" role="status" aria-live="polite">Preparando actualización 0%</div>
+          </div>
+          <div class="update-actions" ${autoUpdate ? "hidden" : ""}>
+            <button type="button" class="update-later">Más tarde</button>
+            <button type="button" class="update-now">Actualizar ahora</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const progress = overlay.querySelector(".update-progress");
+      const progressBar = overlay.querySelector(".update-progress-bar");
+      const progressLabel = overlay.querySelector(".update-progress-label");
+      const laterButton = overlay.querySelector(".update-later");
+      const nowButton = overlay.querySelector(".update-now");
+      if (autoUpdate) {
+        performUpdateInstall({ current, releaseKey, progress, progressBar, progressLabel, laterButton, nowButton, keepSession: true });
+        return;
+      }
+      const closePrompt = () => overlay.remove();
+      laterButton.addEventListener("click", closePrompt);
+      nowButton.addEventListener("click", () => performUpdateInstall({ current, releaseKey, progress, progressBar, progressLabel, laterButton, nowButton, keepSession: false }));
+    }
+
+    function updateInstallProgress(progressBar, progressLabel, percent, message) {
+      const value = Math.max(0, Math.min(100, Number(percent) || 0));
+      progressBar.style.width = value + "%";
+      progressLabel.textContent = message + " " + value + "%";
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function withTimeout(promise, ms) {
+      return Promise.race([
+        Promise.resolve(promise).catch(() => {}),
+        wait(ms)
+      ]);
+    }
+
+    async function warmAppShell(current, progressBar, progressLabel) {
+      const assets = [
+        "../VERSION.json?v=" + encodeURIComponent(current),
+        "../manifest.webmanifest?v=" + encodeURIComponent(current),
+        "../Recuros_imagenes/logo_color.png?v=1.0.0",
+        "../Recuros_imagenes/icon-192.png?v=1.0.0",
+        "../Contabilidad/index.html?v=" + encodeURIComponent(current)
+      ];
+      let done = 0;
+      for (const asset of assets) {
+        await withTimeout(fetch(asset, { cache: "reload" }), 3000);
+        done += 1;
+        updateInstallProgress(progressBar, progressLabel, 55 + Math.round((done / assets.length) * 30), "Descargando actualización");
+      }
+    }
+
+    async function performUpdateInstall({ current, releaseKey, progress, progressBar, progressLabel, laterButton, nowButton, keepSession }) {
+      if (laterButton) laterButton.disabled = true;
+      if (nowButton) {
+        nowButton.disabled = true;
+        nowButton.textContent = "Actualizando...";
+      }
+      progress.hidden = false;
+
+      let finished = false;
+      const finishAndReload = () => {
+        if (finished) return;
+        finished = true;
+        updateInstallProgress(progressBar, progressLabel, 100, "Actualizado. Espere un momento");
+        writeStored(RELEASE_KEY, releaseKey || releaseKeyOf(null, current));
+        const target = location.pathname + "?v=" + encodeURIComponent(current) + "&t=" + Date.now();
+        setTimeout(() => location.replace(target), 700);
+      };
+      // Tope absoluto: pase lo que pase (red lenta, pestana en segundo plano, error inesperado),
+      // la actualizacion nunca debe quedarse colgada mas de 12 segundos.
+      const safetyTimer = setTimeout(finishAndReload, 12000);
+
+      try {
+        updateInstallProgress(progressBar, progressLabel, 5, "Preparando actualización");
+        await wait(200);
+        if ("serviceWorker" in navigator) {
+          updateInstallProgress(progressBar, progressLabel, 20, "Revisando componentes");
+          await withTimeout(
+            navigator.serviceWorker.getRegistrations().then((registrations) =>
+              Promise.all(registrations.map((registration) => registration.unregister()))
+            ),
+            2500
+          );
+        }
+        await wait(200);
+        if ("caches" in window) {
+          updateInstallProgress(progressBar, progressLabel, 40, "Limpiando caché anterior");
+          await withTimeout(
+            caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
+            2500
+          );
+        }
+        if (!keepSession) {
+          removeStored(SESSION_KEY);
+          removeStored(ACTIVE_MODULE_KEY);
+        }
+        await warmAppShell(current, progressBar, progressLabel);
+      } catch (error) {
+        // Cualquier fallo aqui no debe impedir que la actualizacion termine.
+      } finally {
+        clearTimeout(safetyTimer);
+        finishAndReload();
+      }
+    }
+
+    let updateCheckInFlight = false;
+    async function checkReleaseVersion() {
+      if (state.currentSession) return; // No interrumpir una sesion activa: se revisa al salir o cerrar sesion.
+      if (updateCheckInFlight) return;
+      updateCheckInFlight = true;
+      try {
+        const response = await fetch("../VERSION.json?v=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) return;
+        const release = await response.json();
+        const current = release && release.version ? String(release.version) : APP_VERSION;
+        const footerVersion = document.getElementById("loginFooterVersion");
+        if (footerVersion) footerVersion.textContent = current;
+        const releaseKey = releaseKeyOf(release, current);
+        const stored = readStored(RELEASE_KEY);
+        const forced = release && (release.forceUpdate === true || release.rollback === true);
+        const needsUpdate = stored && stored !== releaseKey;
+        if (needsUpdate && !document.querySelector(".update-overlay")) {
+          showUpdatePrompt(release, current, releaseKey, !isInstalledApp() || forced);
+          return;
+        }
+        writeStored(RELEASE_KEY, releaseKey);
+      } catch (error) {
+      } finally {
+        updateCheckInFlight = false;
+      }
+    }
+
+    const MODULE_DEFINITIONS = {
+      Admin: {
+        label: "Control de accesos",
+        icon: "../Recuros_imagenes/usuario.png?v=1.0.0",
+        path: "../Admin/informe_accesos.html?embed=1",
+        embed: true
+      },
+      ControlAccesoApp: {
+        label: "Informe de accesos",
+        symbol: "report",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Admin/informe_accesos.html?embed=1",
+        embed: true
+      },
+      ControlAccesoInforme: {
+        label: "Informe de accesos",
+        symbol: "report",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Admin/informe_accesos.html?embed=1",
+        embed: true
+      },
+      ControlAccesoAdmin: {
+        label: "Administrar accesos",
+        symbol: "controls",
+        icon: "../Recuros_imagenes/rol.png?v=1.0.0",
+        path: "../Admin/administrar_accesos.html?embed=1",
+        embed: true
+      },
+      ControlUsuarios: {
+        label: "Control de usuarios",
+        symbol: "users",
+        icon: "../Recuros_imagenes/usuario.png?v=1.0.0",
+        path: "../Admin/control_usuarios.html?embed=1",
+        embed: true
+      },
+      ControlModulos: {
+        label: "Control de módulos",
+        symbol: "controls",
+        icon: "../Recuros_imagenes/rol.png?v=1.0.0",
+        path: "../Admin/control_modulos.html?embed=1",
+        embed: true
+      },
+      Contabilidad: {
+        label: "Contabilidad",
+        symbol: "report",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Contabilidad/index.html?embed=1",
+        embed: true
+      },
+      Ventas: {
+        label: "Ventas",
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "../Ventas/modulo_ventas.html?embed=1",
+        embed: true
+      },
+      MapaVentas: {
+        label: "Mapa",
+        symbol: "map",
+        icon: "../Recuros_imagenes/ubicacion.png?v=1.0.0",
+        path: "../Ventas/ventas.html?embed=1",
+        embed: true
+      },
+      VentasOperativo: {
+        label: "BI Ventas",
+        symbol: "chart",
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "../Ventas/bi_ventas.html?embed=1",
+        embed: true
+      },
+      BiVendedor: {
+        label: "BI Vendedor",
+        symbol: "seller",
+        icon: "../Recuros_imagenes/usuario.png?v=1.0.0",
+        path: "../Ventas/bi_vendedor.html?embed=1",
+        embed: true
+      },
+      Cartera: {
+        label: "BI Cartera",
+        symbol: "wallet",
+        icon: "../Recuros_imagenes/inventario.png?v=1.0.0",
+        path: "../Ventas/bi_cartera.html?embed=1",
+        embed: true
+      },
+      VentasGerencial: {
+        label: "BI Gerencial",
+        symbol: "board",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Ventas/bi_gerencial.html?embed=1",
+        embed: true
+      },
+      Retorno: {
+        label: "BI Devoluciones",
+        symbol: "return",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Ventas/bi_retornos.html?embed=1",
+        embed: true
+      },
+      NuevoDia: {
+        label: "BI Nuevo Dia",
+        symbol: "day",
+        icon: "../Recuros_imagenes/calendario.png?v=1.0.0",
+        path: "../Ventas/bi_nuevo_dia.html?embed=1",
+        embed: true
+      },
+      Logistica: {
+        label: "Logística",
+        icon: "../Recuros_imagenes/inventario.png?v=1.0.0",
+        description: "Cabinets · Taller · Movimientos",
+        path: "../Logistica/cabinets.html?embed=1&v=1.0.0",
+        embed: true
+      },
+      Gerencia: {
+        label: "Gerencia",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Gerencia/tablero.html?embed=1",
+        embed: true
+      },
+      GerenciaTablero: {
+        label: "Tablero Control",
+        symbol: "dashboard",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../Gerencia/tablero.html?embed=1",
+        embed: true
+      },
+      GerenciaRevision: {
+        label: "Revisión Costo",
+        symbol: "cost",
+        icon: "../Recuros_imagenes/calendario.png?v=1.0.0",
+        path: "../Gerencia/revision.html?embed=1",
+        embed: true
+      },
+      IceResumen: {
+        label: "Resumen",
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "../ICE_Pinguino/resumen.html?embed=1",
+        embed: true
+      },
+      IceInventario: {
+        label: "Inventario",
+        icon: "../Recuros_imagenes/inventario.png?v=1.0.0",
+        path: "../ICE_Pinguino/inventario.html?embed=1",
+        embed: true
+      },
+      IceReportes: {
+        label: "Reportes",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../ICE_Pinguino/reportes.html?embed=1",
+        embed: true
+      },
+      IceEscaneo: {
+        label: "Escaneo",
+        icon: "../Recuros_imagenes/escanear.png?v=1.0.0",
+        path: "../ICE_Pinguino/escaneo.html?embed=1",
+        embed: true
+      },
+      IceMisVisitas: {
+        label: "Mis visitas",
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "../ICE_Pinguino/mis_visitas.html?embed=1",
+        embed: true
+      },
+      GerenciaFlujo: {
+        label: "Flujo Caja",
+        symbol: "cash",
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "../Gerencia/flujo-caja-opaustro.html?embed=1",
+        embed: true
+      }
+    };
+
+    const PREVIEW_USERS = {
+      admin: ["Benjamin Picon"],
+      Gerencia: ["Patricio Posso", "Fernando Cantos"],
+      Logistica: ["Bryan Sanabria", "Manuel Guaman"],
+      Ventas: ["Bryan Nunez", "Milton Quezada", "Supervisor", "vendedores"]
+    };
+
+    const VENTAS_MODULES = ["MapaVentas", "VentasOperativo", "BiVendedor", "Cartera", "VentasGerencial", "Retorno", "NuevoDia"];
+    const ADMIN_VENTAS_MODULES = ["VentasOperativo", "BiVendedor", "MapaVentas", "Cartera", "VentasGerencial", "Retorno", "NuevoDia"];
+    const VENDEDOR_MODULES = ["NuevoDia", "BiVendedor", "Cartera", "Retorno", "MapaVentas"];
+    const CARTERA_MODULES = ["Cartera"];
+    const LOGISTICA_MODULES = ["Logistica", "Retorno"];
+    const ICE_ADMIN_MODULES = ["IceResumen", "IceInventario", "IceReportes"];
+    const ICE_OPERATIVO_MODULES = ["IceEscaneo", "IceMisVisitas"];
+    const GERENCIA_MODULES = ["GerenciaTablero", "GerenciaRevision", "GerenciaFlujo"];
+    const ACCESS_CONTROL_MODULES = ["ControlAccesoInforme", "ControlAccesoAdmin", "ControlUsuarios", "ControlModulos"];
+    const GERENCIA_CONTROL_MODULES = ["ControlAccesoInforme", "ControlModulos"];
+    const ADMIN_APP_MODULES = [...ACCESS_CONTROL_MODULES];
+    const GERENCIA_ACCESS_MODULES = [...ADMIN_VENTAS_MODULES, ...LOGISTICA_MODULES, ...GERENCIA_MODULES, ...ICE_ADMIN_MODULES, ...GERENCIA_CONTROL_MODULES];
+    const ADMIN_GERENCIA_MODULES = [...ADMIN_VENTAS_MODULES, ...LOGISTICA_MODULES, ...GERENCIA_MODULES, ...ICE_ADMIN_MODULES, ...ACCESS_CONTROL_MODULES];
+
+    const SYMBOLS = {
+      map: "&#128506;&#65039;",
+      chart: "&#128202;",
+      wallet: "&#128188;",
+      board: "&#128200;",
+      return: "&#8617;",
+      day: "&#9728;&#65039;",
+      dashboard: "&#128200;",
+      cost: "&#128176;",
+      cash: "&#128181;",
+      access: "&#128272;",
+      report: "&#128202;",
+      controls: "&#9881;&#65039;",
+      users: "&#128101;",
+      seller: "&#128100;"
+    };
+
+    const AREA_GROUPS = [
+      {
+        id: "ControlAccesos",
+        label: "Control de accesos",
+        icon: "&#128101;",
+        iconPath: "../Recuros_imagenes/usuario.png?v=1.0.0",
+        modules: ["ControlAccesoInforme", "ControlAccesoAdmin", "ControlUsuarios", "ControlModulos"]
+      },
+      {
+        id: "Ventas",
+        label: "Ventas",
+        icon: "&#128200;",
+        iconPath: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        modules: ["MapaVentas", "VentasOperativo", "BiVendedor", "Cartera", "VentasGerencial", "Retorno", "NuevoDia"]
+      },
+      {
+        id: "Logistica",
+        label: "Logística",
+        icon: "&#128666;",
+        iconPath: "../Recuros_imagenes/inventario.png?v=1.0.0",
+        modules: ["Logistica"]
+      },
+      {
+        id: "Gerencia",
+        label: "Gerencia",
+        icon: "&#128188;",
+        iconPath: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        modules: ["GerenciaTablero", "GerenciaRevision", "GerenciaFlujo"]
+      },
+      {
+        id: "ICE",
+        label: "ICE",
+        icon: "&#127848;",
+        iconPath: "../Recuros_imagenes/pinguino.png?v=1.0.0",
+        modules: ["IceResumen", "IceInventario", "IceReportes", "IceEscaneo", "IceMisVisitas"]
+      }
+    ];
+
+    const state = {
+      usersByRole: {},
+      currentSession: null
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+    const roleSelect = $("#role");
+    const userSelect = $("#user");
+    const userTyped = $("#userTyped");
+    const form = $("#loginForm");
+    const message = $("#message");
+    const submitButton = $("#submitButton");
+
+    function setMessage(text, type) {
+      message.textContent = text || "";
+      message.className = `message ${type || ""}`;
+    }
+
+    function renderRoles(usersByRole) {
+      state.usersByRole = usersByRole || {};
+      roleSelect.innerHTML = '<option value="">Seleccione un rol</option>';
+      Object.keys(state.usersByRole).forEach((role) => {
+        const option = document.createElement("option");
+        option.value = role;
+        option.textContent = role === "admin" ? "Administrador" : role;
+        roleSelect.appendChild(option);
+      });
+      renderUsers(roleSelect.value);
+    }
+
+    function renderUsers(role) {
+      const users = state.usersByRole[role] || [];
+      const isTypedUserRole = normalizeRoleName(role) === "VENDEDOR";
+      userSelect.innerHTML = '<option value="">Seleccione su usuario</option>';
+      userSelect.disabled = isTypedUserRole || users.length === 0;
+      userSelect.hidden = isTypedUserRole;
+      userSelect.required = !isTypedUserRole;
+      userTyped.disabled = !isTypedUserRole;
+      userTyped.required = isTypedUserRole;
+      userTyped.hidden = !isTypedUserRole;
+      if (!isTypedUserRole) userTyped.value = "";
+      users.forEach((person) => {
+        const option = document.createElement("option");
+        option.value = person.usuario;
+        option.textContent = person.razon || person.usuario;
+        userSelect.appendChild(option);
+      });
+    }
+
+    function loadLoginData() {
+      if (window.google && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler((response) => {
+            if (!response || !response.success) {
+              setMessage("No se pudo preparar el acceso. Intente nuevamente.", "error");
+              return;
+            }
+            renderRoles(response.usersByRole);
+            setMessage("", "");
+          })
+          .withFailureHandler(() => {
+            setMessage("No se pudo preparar el acceso. Intente nuevamente.", "error");
+          })
+          .getLoginData();
+        return;
+      }
+
+      if (!LOGIN_API_URL) {
+        renderRoles({});
+        setMessage("Configura LOGIN_API_URL para validar usuarios reales. Por seguridad no se permite acceso local con contraseñas libres.", "error");
+        return;
+      }
+      callLoginApi("getLoginData", { apiKey: INTERNAL_API_KEY }).then((response) => {
+        if (!response || !response.success) {
+          setMessage((response && (response.detail || response.message)) || "No se pudo preparar el acceso.", "error");
+          return;
+        }
+        renderRoles(response.usersByRole);
+      }).catch(() => setMessage("No se pudo conectar con Login API.", "error"));
+    }
+
+    async function callLoginApi(action, payload) {
+      if (!LOGIN_API_URL) {
+        throw new Error("Configura LOGIN_API_URL con la URL /exec del Apps Script de Login para pruebas locales.");
+      }
+      const response = await fetch(LOGIN_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        cache: "no-store",
+        body: JSON.stringify({ action, payload })
+      });
+      if (!response.ok) throw new Error("No se pudo contactar el servicio de Login.");
+      return response.json();
+    }
+
+    function authenticate(payload) {
+      return new Promise((resolve, reject) => {
+        if (window.google && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .authenticate(payload);
+          return;
+        }
+        callLoginApi("authenticate", payload).then(resolve).catch(reject);
+      });
+    }
+
+    function accessLogKey() {
+      return "opaustro_access_log";
+    }
+
+    function pendingAccessLogKey() {
+      return "opaustro_access_log_pending";
+    }
+
+    function readAccessEntries(key) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || "[]").filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function writeAccessEntries(key, entries, limit) {
+      try {
+        localStorage.setItem(key, JSON.stringify((entries || []).slice(-(limit || 5000))));
+      } catch (error) {}
+    }
+
+    function recordAccessLog(session, credentials) {
+      try {
+        const key = accessLogKey();
+        const current = readAccessEntries(key);
+        const user = String((session && (session.user || session.usuario || session.nombre)) || (credentials && credentials.user) || "").trim();
+        const role = String((session && (session.role || session.rol)) || (credentials && credentials.role) || "").trim();
+        if (!user || !role) return;
+        if (session && !session.sessionId) session.sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const entry = {
+          id: session && session.sessionId ? session.sessionId : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          user,
+          role,
+          at: new Date().toISOString(),
+          version: APP_VERSION,
+          device: isInstalledApp() ? "app_instalada" : "web",
+          userAgent: navigator.userAgent || "",
+          env: appEnv()
+        };
+        current.push(entry);
+        writeAccessEntries(key, current, 5000);
+        queueAccessLog(entry);
+        flushAccessLogQueue();
+      } catch (error) {}
+    }
+
+    async function postSessionAction(action, payload) {
+      if (!LOGIN_API_URL || !payload) return false;
+      try {
+        const response = await fetch(LOGIN_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          cache: "no-store",
+          body: JSON.stringify({ action, payload }),
+          keepalive: true
+        });
+        return response.ok;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function sessionHeartbeatPayload(session) {
+      if (!session) return null;
+      if (!session.sessionId) session.sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      return {
+        sessionId: session.sessionId,
+        user: session.user || session.usuario || session.nombre || "",
+        role: session.role || session.rol || "",
+        startedAt: session.startedAt || new Date().toISOString(),
+        version: APP_VERSION,
+        device: isInstalledApp() ? "app_instalada" : "web",
+        userAgent: navigator.userAgent || ""
+      };
+    }
+
+    function startSessionHeartbeat(session) {
+      stopSessionHeartbeat(false);
+      if (!session) return;
+      if (!session.startedAt) session.startedAt = new Date().toISOString();
+      const send = () => postSessionAction("recordSessionHeartbeat", sessionHeartbeatPayload(session));
+      send();
+      heartbeatTimer = setInterval(send, 30000);
+    }
+
+    function stopSessionHeartbeat(notifyEnd) {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+      if (notifyEnd && state.currentSession && state.currentSession.sessionId) {
+        postSessionAction("endSession", { sessionId: state.currentSession.sessionId });
+      }
+    }
+
+    function queueAccessLog(entry) {
+      if (!entry || !entry.id) return;
+      const pending = readAccessEntries(pendingAccessLogKey());
+      if (!pending.some((item) => item && item.id === entry.id)) pending.push(entry);
+      writeAccessEntries(pendingAccessLogKey(), pending, 1000);
+    }
+
+    async function postAccessLog(entry) {
+      if (!LOGIN_API_URL || !entry) return false;
+      try {
+        const response = await fetch(LOGIN_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          cache: "no-store",
+          body: JSON.stringify({ action: "recordAccessLog", payload: entry }),
+          keepalive: true
+        });
+        if (!response.ok) return false;
+        const data = await response.json().catch(() => null);
+        return Boolean(data && data.success);
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function flushAccessLogQueue() {
+      const pending = readAccessEntries(pendingAccessLogKey());
+      if (!pending.length || !LOGIN_API_URL) return;
+      const remaining = [];
+      for (const entry of pending) {
+        const ok = await postAccessLog(entry);
+        if (!ok) remaining.push(entry);
+      }
+      writeAccessEntries(pendingAccessLogKey(), remaining, 1000);
+    }
+
+    function createModuleButton(moduleName, session) {
+      const module = MODULE_DEFINITIONS[moduleName] || {
+        label: moduleName,
+        icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
+        path: "#"
+      };
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "module-link";
+      button.dataset.module = moduleName;
+      if (module.symbol) {
+        button.innerHTML = `<span class="module-symbol" aria-hidden="true">${SYMBOLS[module.symbol] || "&#8226;"}</span><span>${module.label}</span>`;
+      } else if (module.icon && module.icon !== "truck") {
+        button.innerHTML = `<img src="${module.icon}" alt=""><span>${module.label}</span>`;
+      } else {
+        button.innerHTML = `<span class="module-symbol" aria-hidden="true">&#128666;</span><span>${module.label}</span>`;
+      }
+      button.addEventListener("click", () => activateModule(moduleName, session, true));
+      return button;
+    }
+
+    function normalizeRoleName(role) {
+      return String(role || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\s-]+/g, "_")
+        .toUpperCase();
+    }
+
+    function normalizePersonName(name) {
+      return String(name || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toUpperCase();
+    }
+
+    function modulesForRole(role) {
+      const normalized = normalizeRoleName(role);
+      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return ADMIN_GERENCIA_MODULES;
+      if (normalized === "GERENCIA" || normalized === "GERENTE") return GERENCIA_ACCESS_MODULES;
+      if (normalized === "LOGISTICA") return LOGISTICA_MODULES;
+      if (normalized === "TECNICO" || normalized === "TECNICO_LOGISTICA") return ["Logistica"];
+      if (normalized === "SUPERVISOR") return VENTAS_MODULES;
+      if (normalized === "CARTERA") return CARTERA_MODULES;
+      if (normalized === "VENDEDOR" || normalized === "VENTAS") return VENDEDOR_MODULES;
+      if (normalized === "VENDEDORES_ICE" || normalized === "VENDEDOR_ICE" || normalized === "ICE") return [...ICE_OPERATIVO_MODULES, ...VENDEDOR_MODULES];
+      return null;
+    }
+
+    function expandModules(modules) {
+      const expanded = [];
+      (modules || []).forEach((moduleName) => {
+        if (moduleName === "Admin") {
+          ADMIN_GERENCIA_MODULES.forEach((adminModule) => {
+            if (!expanded.includes(adminModule)) expanded.push(adminModule);
+          });
+          return;
+        }
+        if (/^(ICE|Ice|IceOperativo|IcePinguino)$/i.test(moduleName)) {
+          ICE_OPERATIVO_MODULES.forEach((iceModule) => {
+            if (!expanded.includes(iceModule)) expanded.push(iceModule);
+          });
+          return;
+        }
+        if (moduleName === "Ventas") {
+          VENTAS_MODULES.forEach((ventasModule) => {
+            if (!expanded.includes(ventasModule)) expanded.push(ventasModule);
+          });
+          return;
+        }
+        if (moduleName === "Gerencia") {
+          GERENCIA_MODULES.forEach((gerenciaModule) => {
+            if (!expanded.includes(gerenciaModule)) expanded.push(gerenciaModule);
+          });
+          return;
+        }
+        if (!expanded.includes(moduleName)) expanded.push(moduleName);
+      });
+      return expanded;
+    }
+
+    function visibleModulesForSession(session) {
+      const role = session && (session.role || session.rol);
+      const user = session && (session.user || session.usuario || session.nombre);
+      const roleModules = modulesForRole(role);
+      if (normalizeRoleName(role) === "SUPERVISOR" && ["JHONNY CHAFLA", "JHONY CHAFLA"].includes(normalizePersonName(user))) {
+        return expandModules([...VENTAS_MODULES, ...ICE_ADMIN_MODULES]);
+      }
+      return expandModules(roleModules || (session && session.modules) || []);
+    }
+
+    function preferredInitialModule(session, visibleModules) {
+      const normalized = normalizeRoleName(session && (session.role || session.rol));
+      if ((normalized === "VENDEDORES_ICE" || normalized === "VENDEDOR_ICE" || normalized === "ICE") && visibleModules.includes("IceEscaneo")) return "IceEscaneo";
+      if ((normalized === "ADMIN" || normalized === "ADMINISTRADOR" || normalized === "GERENCIA" || normalized === "GERENTE") && visibleModules.includes("VentasOperativo")) return "VentasOperativo";
+      return "";
+    }
+
+    function areaGroupsForSession(session) {
+      const normalized = normalizeRoleName(session && (session.role || session.rol));
+      if (normalized === "LOGISTICA") {
+        return AREA_GROUPS.map((group) => (
+          group.id === "Logistica" ? { ...group, modules: LOGISTICA_MODULES } : group
+        )).filter((group) => group.id === "Logistica");
+      }
+      return AREA_GROUPS;
+    }
+
+    function renderModuleGroups(session, visibleModules) {
+      const sideModules = $("#sideModules");
+      const bottomModules = $("#bottomModules");
+      sideModules.innerHTML = "";
+      bottomModules.innerHTML = "";
+
+      areaGroupsForSession(session).forEach((group) => {
+        const modules = group.modules.filter((moduleName) => visibleModules.includes(moduleName));
+        if (!modules.length) return;
+
+        const wrapper = document.createElement("section");
+        wrapper.className = "module-group";
+        wrapper.dataset.group = group.id;
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "group-toggle";
+        toggle.innerHTML = `<span class="group-icon" aria-hidden="true">${renderIconMarkup(group.iconPath || group.icon)}</span><span class="group-name">${group.label}</span><span class="group-caret">›</span>`;
+        toggle.addEventListener("click", () => {
+          if (!window.matchMedia("(max-width: 850px)").matches) {
+            document.querySelector("#appScreen").classList.add("sidebar-expanded");
+          }
+          const willOpen = !wrapper.classList.contains("is-open");
+          sideModules.querySelectorAll(".module-group.is-open").forEach((openGroup) => {
+            if (openGroup !== wrapper) openGroup.classList.remove("is-open");
+          });
+          wrapper.classList.toggle("is-open", willOpen);
+        });
+
+        const items = document.createElement("div");
+        items.className = "group-items";
+        modules.forEach((moduleName) => items.appendChild(createModuleButton(moduleName, session)));
+
+        wrapper.appendChild(toggle);
+        wrapper.appendChild(items);
+        sideModules.appendChild(wrapper);
+      });
+
+      renderBottomGroups(session, visibleModules);
+    }
+
+    function visibleAreaGroups(visibleModules, session = state.currentSession) {
+      return areaGroupsForSession(session).map((group) => ({
+        ...group,
+        modules: group.modules.filter((moduleName) => visibleModules.includes(moduleName))
+      })).filter((group) => group.modules.length);
+    }
+
+    function renderIconMarkup(icon) {
+      if (icon && /\.(png|jpg|jpeg|webp|svg)(\?.*)?$/i.test(icon)) {
+        return `<img src="${icon}" alt="" aria-hidden="true">`;
+      }
+      return `<span class="module-symbol" aria-hidden="true">${icon || "&#8226;"}</span>`;
+    }
+
+    function createBottomButton(label, icon, onClick, extraClass, moduleName) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `module-link ${extraClass || ""}`.trim();
+      if (moduleName) button.dataset.module = moduleName;
+      button.innerHTML = `${renderIconMarkup(icon)}<span>${label}</span>`;
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onClick(event);
+      });
+      return button;
+    }
+
+    function goHome(session, visibleModules) {
+      if (!session || !visibleModules) return;
+      const preferred = preferredInitialModule(session, visibleModules);
+      const home = preferred || visibleModules[0];
+      if (home) activateModule(home, session, true);
+    }
+
+    function renderBottomGroups(session, visibleModules) {
+      const bottomModules = $("#bottomModules");
+      bottomModules.innerHTML = "";
+      bottomModules.classList.remove("is-submenu");
+      const groups = visibleAreaGroups(visibleModules, session);
+      bottomModules.style.setProperty("--bottom-count", Math.max(groups.length + 1, 1));
+      bottomModules.appendChild(createBottomButton("Inicio", "🏠", () => goHome(session, visibleModules), "bottom-home"));
+      groups.forEach((group) => {
+        bottomModules.appendChild(createBottomButton(group.label, group.iconPath || group.icon, () => {
+          if (group.modules.length === 1) {
+            activateModule(group.modules[0], session, true);
+            renderBottomGroups(session, visibleModules);
+            return;
+          }
+          renderBottomSubmenu(session, visibleModules, group);
+        }));
+      });
+    }
+
+    function renderBottomSubmenu(session, visibleModules, group) {
+      const bottomModules = $("#bottomModules");
+      bottomModules.innerHTML = "";
+      bottomModules.classList.add("is-submenu");
+      bottomModules.style.setProperty("--bottom-count", Math.max(group.modules.length + 1, 1));
+      bottomModules.appendChild(createBottomButton("Menú", "↩", () => renderBottomGroups(session, visibleModules), "bottom-back"));
+      group.modules.forEach((moduleName) => {
+        const module = MODULE_DEFINITIONS[moduleName] || { label: moduleName, symbol: "board" };
+        const icon = module.icon || (module.symbol ? (SYMBOLS[module.symbol] || "&#8226;") : (group.iconPath || group.icon || "&#8226;"));
+        bottomModules.appendChild(createBottomButton(module.label, icon, () => {
+          activateModule(moduleName, session, true);
+          renderBottomGroups(session, visibleModules);
+        }, "", moduleName));
+      });
+    }
+
+    function restoreBottomGroups() {
+      if (!state.currentSession || !state.visibleModules) return;
+      const bottomModules = $("#bottomModules");
+      if (bottomModules && bottomModules.classList.contains("is-submenu")) {
+        renderBottomGroups(state.currentSession, state.visibleModules);
+      }
+    }
+
+
+    function setConnectionStatus(status, text) {
+      const el = $("#connectionStatus");
+      if (!el) return;
+      const cfg = {
+        ok: { icon: "✓", text: text || "Conectado" },
+        warn: { icon: "!", text: text || "Verificando" },
+        err: { icon: "×", text: text || "Sin conexión" }
+      }[status] || { icon: "!", text: text || "Verificando" };
+      el.className = `connection-status ${status || "warn"}`;
+      el.querySelector(".status-icon").textContent = cfg.icon;
+      el.querySelector(".status-text").textContent = cfg.text;
+      el.title = cfg.text;
+    }
+
+    function shouldUseMobileLayout() {
+      return window.matchMedia("(max-width: 850px)").matches ||
+        window.matchMedia("(pointer: coarse)").matches ||
+        window.matchMedia("(display-mode: standalone)").matches ||
+        navigator.maxTouchPoints > 0;
+    }
+
+    function applyResponsiveMode() {
+      const app = $("#appScreen");
+      if (!app) return;
+      const mobile = shouldUseMobileLayout();
+      app.classList.toggle("is-mobile-layout", mobile);
+      if (!mobile) app.classList.remove("sidebar-open");
+      document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+      const frame = document.querySelector(".module-frame");
+      if (frame && frame.contentWindow) {
+        setTimeout(() => frame.contentWindow.dispatchEvent(new Event("resize")), 80);
+      }
+    }
+
+    window.addEventListener("resize", applyResponsiveMode);
+    window.addEventListener("orientationchange", () => setTimeout(applyResponsiveMode, 120));
+
+    // Cuando el usuario hace zoom con el gesto tactil (pellizcar), el navegador
+    // escala TODA la pagina visible, incluido el encabezado fijo y la barra
+    // inferior. La Visual Viewport API informa en tiempo real cuanto escalo y
+    // desplazo el navegador la pagina; con esa info se aplica una transformacion
+    // inversa solo al encabezado y a la barra inferior para que se vean siempre
+    // del mismo tamano y en su lugar, mientras el contenido (el iframe del
+    // modulo) si queda ampliado por el zoom nativo.
+    function setupPinchZoomGuard() {
+      if (!window.visualViewport) return;
+      const vv = window.visualViewport;
+      function update() {
+        const app = $("#appScreen");
+        if (!app || !app.classList.contains("is-mobile-layout")) return;
+        const scale = vv.scale || 1;
+        const header = document.querySelector(".app-topbar");
+        const bottomNav = document.querySelector(".bottom-nav");
+        const inverse = scale > 1.001 ? 1 / scale : 1;
+        if (header) {
+          header.style.transform = inverse === 1 ? "" : `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${inverse})`;
+          header.style.transformOrigin = "top left";
+        }
+        if (bottomNav) {
+          const layoutHeight = document.documentElement.clientHeight;
+          const translateY = (vv.offsetTop + vv.height) - layoutHeight;
+          bottomNav.style.transform = inverse === 1 ? "" : `translate(${vv.offsetLeft}px, ${translateY}px) scale(${inverse})`;
+          bottomNav.style.transformOrigin = "bottom left";
+        }
+      }
+      vv.addEventListener("resize", update);
+      vv.addEventListener("scroll", update);
+    }
+    setupPinchZoomGuard();
+
+    window.addEventListener("message", (event) => {
+      const data = event.data || {};
+      if (data.type === "opaustro-activity") {
+        resetIdleTimer();
+        return;
+      }
+      if (data.type !== "opaustro-module-status") return;
+      if (data.status === "ok") setConnectionStatus("ok", data.message || "Conectado");
+      else if (data.status === "err") setConnectionStatus("err", data.message || "Sin conexión");
+      else setConnectionStatus("warn", data.message || "Verificando");
+    });
+
+
+    function roleForIce(role, session = {}) {
+      const normalized = String(role || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return "ADMIN";
+      if (normalized === "GERENCIA" || normalized === "GERENTE") return "GERENCIA";
+      if (normalized === "SUPERVISOR" && ["JHONNY CHAFLA", "JHONY CHAFLA"].includes(normalizePersonName(session.user || session.usuario || session.nombre))) return "GERENCIA";
+      return "VENDEDOR";
+    }
+
+    function sessionNeedsIceToken(session) {
+      const expanded = visibleModulesForSession(session || {});
+      return expanded.some((moduleName) => moduleName.startsWith("Ice"));
+    }
+
+    async function postIceAction(body) {
+      const response = await fetch(ICE_API_URL, {
+        method: "POST",
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        cache: "no-store",
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error("No se pudo contactar ICE por POST.");
+      return readJsonResponse(response, "ICE API");
+    }
+
+    async function requestIceLogin(session, credentials) {
+      const usuario = (credentials && credentials.user) || session.user || session.usuario || "";
+      const rol = roleForIce((credentials && credentials.role) || session.role || session.rol, session);
+      if (credentials && credentials.password) {
+        try {
+          const passwordLogin = { action: "login", usuario, password: credentials.password, rol };
+          const result = await postIceAction(passwordLogin);
+          if (result && result.ok && result.token) return result;
+        } catch (error) {
+          // El login principal ya validó la identidad. Si la segunda validación ICE falla,
+          // se continúa con el token delegado para no bloquear módulos funcionales.
+        }
+      }
+      return postIceAction({
+        action: "principalLogin",
+        usuario,
+        rol,
+        principal: "OPAUSTRO_LOGIN",
+        issuedAt: String(Date.now())
+      });
+    }
+
+    async function prepareIceToken(session, credentials = {}) {
+      if (!sessionNeedsIceToken(session) || session.iceToken || !ICE_API_URL) return session;
+      try {
+        const result = await requestIceLogin(session, credentials);
+        if (!result || !result.ok || !result.token) {
+          throw new Error(result && result.message ? result.message : "No se pudo preparar el acceso a ICE.");
+        }
+        return {
+          ...session,
+          iceToken: result.token,
+          iceUser: result.user || null,
+          moduleErrors: { ...(session.moduleErrors || {}), ICE: "" }
+        };
+      } catch (error) {
+        return {
+          ...session,
+          iceToken: "",
+          moduleErrors: {
+            ...(session.moduleErrors || {}),
+            ICE: error && error.message ? error.message : "ICE no pudo preparar datos."
+          }
+        };
+      }
+    }
+
+    function isIceModule(moduleName) {
+      return /^Ice/.test(String(moduleName || ""));
+    }
+
+    function buildModuleSrc(module, moduleName, session) {
+      const url = new URL(module.path, location.href);
+      url.searchParams.set("v", APP_VERSION);
+      url.searchParams.set("t", Date.now());
+      if (isIceModule(moduleName) && session.iceToken) {
+        url.searchParams.set("iceToken", session.iceToken);
+        url.searchParams.set("token", session.iceToken);
+        url.searchParams.set("usuario", session.user || session.usuario || "");
+        url.searchParams.set("nombre", session.user || session.usuario || "");
+        url.searchParams.set("perfil", roleForIce(session.role || session.rol || "ADMIN", session));
+      }
+      return url.pathname + url.search + url.hash;
+    }
+
+    function startIcePreparation(session, credentials = {}) {
+      if (!sessionNeedsIceToken(session) || session.iceToken || !ICE_API_URL) return Promise.resolve(session);
+      if (icePreparationPromise) return icePreparationPromise;
+      icePreparationPromise = prepareIceToken(session, credentials).then((updated) => {
+        state.currentSession = updated;
+        persistSession(updated);
+        icePreparationPromise = null;
+        const active = readStored(ACTIVE_MODULE_KEY);
+        if (isIceModule(active) && updated.iceToken) activateModule(active, updated, false);
+        return updated;
+      }).catch((error) => {
+        icePreparationPromise = null;
+        const updated = {
+          ...session,
+          iceToken: "",
+          moduleErrors: {
+            ...(session.moduleErrors || {}),
+            ICE: error && error.message ? error.message : "ICE no pudo preparar datos."
+          }
+        };
+        state.currentSession = updated;
+        persistSession(updated);
+        return updated;
+      });
+      return icePreparationPromise;
+    }
+
+    function renderApp(session, credentials) {
+      state.currentSession = session;
+      if (!state.currentSession.sessionId) state.currentSession.sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      if (!state.currentSession.startedAt) state.currentSession.startedAt = new Date().toISOString();
+      persistSession(session);
+      startSessionHeartbeat(state.currentSession);
+      $("#loginScreen").classList.add("is-hidden");
+      $("#appScreen").classList.remove("is-hidden");
+      applyResponsiveMode();
+      $("#sessionUser").textContent = session.user || "Usuario";
+      $("#sessionRole").textContent = session.role === "admin" ? "Administrador" : session.role;
+      renderHeaderAvatar(session.fotoPerfil);
+
+      const visibleModules = visibleModulesForSession(session);
+      state.visibleModules = visibleModules;
+      renderModuleGroups(session, visibleModules);
+
+      const savedModule = readStored(ACTIVE_MODULE_KEY);
+      const hashModule = decodeURIComponent(String(location.hash || "").replace(/^#/, ""));
+      const preferredModule = preferredInitialModule(session, visibleModules);
+      const firstModule = visibleModules.includes(hashModule)
+        ? hashModule
+        : (visibleModules.includes(savedModule) ? savedModule : (preferredModule || visibleModules[0]));
+      if (firstModule) activateModule(firstModule, session, false);
+      if (firstModule) history.replaceState({ moduleName: firstModule }, "", "#" + encodeURIComponent(firstModule));
+      resetIdleTimer();
+
+      if (session.debeCambiarClave) {
+        openPasswordOverlay({ forced: true, prefillActual: credentials && credentials.password });
+      }
+    }
+
+    function currentSessionIdentity() {
+      const session = state.currentSession || {};
+      return {
+        usuario: session.usuario || session.user || "",
+        rol: session.role || session.rol || ""
+      };
+    }
+
+    function renderHeaderAvatar(fotoPerfil) {
+      const icon = $("#headerAvatarIcon");
+      const img = $("#headerAvatarImg");
+      if (fotoPerfil) {
+        img.src = fotoPerfil;
+        img.style.display = "";
+        icon.style.display = "none";
+      } else {
+        img.removeAttribute("src");
+        img.style.display = "none";
+        icon.style.display = "";
+      }
+    }
+
+    function eyeToggleButtonHtml(targetId) {
+      return `<button type="button" class="pwd-toggle" data-toggle-for="${targetId}" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+        <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.8 21.8 0 0 1 5.06-6.06"/><path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.77 21.77 0 0 1-3.22 4.36"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </button>`;
+    }
+
+    function openPasswordOverlay(opts) {
+      opts = opts || {};
+      if (document.querySelector(".pwd-overlay")) return;
+      const forced = !!opts.forced;
+      const prefillActual = opts.prefillActual || "";
+      const overlay = document.createElement("div");
+      overlay.className = "update-overlay pwd-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.innerHTML = `
+        <div class="update-card">
+          <div class="update-icon">🔑</div>
+          <h2>${forced ? "Cambia tu contraseña" : "Cambiar contraseña"}</h2>
+          <p>${forced ? "Por seguridad, debes establecer una contraseña propia antes de continuar." : "Ingresa tu contraseña actual y la nueva contraseña."}</p>
+          <form id="pwdForm" autocomplete="off">
+            <div class="pwd-field" ${prefillActual ? "hidden" : ""}>
+              <label for="pwdActual">Contraseña actual</label>
+              <span class="pwd-input-row">
+                <input id="pwdActual" name="pwdActual" type="password" ${prefillActual ? "" : "required"}>
+                ${eyeToggleButtonHtml("pwdActual")}
+              </span>
+            </div>
+            <div class="pwd-field">
+              <label for="pwdNueva">Nueva contraseña</label>
+              <span class="pwd-input-row">
+                <input id="pwdNueva" name="pwdNueva" type="password" required minlength="4">
+                ${eyeToggleButtonHtml("pwdNueva")}
+              </span>
+            </div>
+            <div class="pwd-field">
+              <label for="pwdConfirma">Confirmar nueva contraseña</label>
+              <span class="pwd-input-row">
+                <input id="pwdConfirma" name="pwdConfirma" type="password" required minlength="4">
+                ${eyeToggleButtonHtml("pwdConfirma")}
+              </span>
+            </div>
+            <p class="pwd-msg" style="color:#a32d2d;font-size:.85rem;min-height:1.1em;"></p>
+            <div class="update-actions">
+              <button type="button" class="update-later" id="pwdLater">${forced ? "Más tarde" : "Cancelar"}</button>
+              <button type="submit" class="update-now" id="pwdSubmit">Guardar</button>
+            </div>
+          </form>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const closeOverlay = () => overlay.remove();
+      overlay.querySelector("#pwdLater").addEventListener("click", closeOverlay);
+      overlay.querySelectorAll(".pwd-toggle").forEach((toggleBtn) => {
+        toggleBtn.addEventListener("click", () => {
+          const input = overlay.querySelector("#" + toggleBtn.dataset.toggleFor);
+          if (!input) return;
+          const showing = input.type === "text";
+          input.type = showing ? "password" : "text";
+          toggleBtn.classList.toggle("is-visible", !showing);
+          const label = showing ? "Mostrar contraseña" : "Ocultar contraseña";
+          toggleBtn.setAttribute("aria-label", label);
+          toggleBtn.setAttribute("title", label);
+        });
+      });
+      const form = overlay.querySelector("#pwdForm");
+      const msg = overlay.querySelector(".pwd-msg");
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        msg.textContent = "";
+        const actual = prefillActual || overlay.querySelector("#pwdActual").value.trim();
+        const nueva = overlay.querySelector("#pwdNueva").value.trim();
+        const confirma = overlay.querySelector("#pwdConfirma").value.trim();
+        if (!actual) { msg.textContent = "Ingresa tu contraseña actual."; return; }
+        if (nueva.length < 4) { msg.textContent = "La nueva contraseña debe tener al menos 4 caracteres."; return; }
+        if (nueva !== confirma) { msg.textContent = "Las contraseñas no coinciden."; return; }
+        const submitButton = overlay.querySelector("#pwdSubmit");
+        submitButton.disabled = true;
+        submitButton.textContent = "Guardando...";
+        try {
+          const identity = currentSessionIdentity();
+          const response = await callLoginApi("changePassword", { rol: identity.rol, usuario: identity.usuario, actual, nueva });
+          if (!response || !response.success) {
+            msg.textContent = (response && response.message) || "No se pudo actualizar la contraseña.";
+            return;
+          }
+          if (state.currentSession) state.currentSession.debeCambiarClave = false;
+          persistSession(state.currentSession);
+          closeOverlay();
+        } catch (error) {
+          msg.textContent = "No se pudo contactar el servidor. Intenta de nuevo.";
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Guardar";
+        }
+      });
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("No se pudo leer la imagen."));
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Ventana de recorte/zoom: permite arrastrar la foto y hacer zoom para
+    // centrarla/acomodarla antes de guardarla. Devuelve un <canvas> cuadrado con
+    // la parte elegida, o null si el usuario cancela.
+    function openPhotoCropOverlay(img) {
+      return new Promise((resolve) => {
+        const STAGE = 260;
+        const overlay = document.createElement("div");
+        overlay.className = "update-overlay crop-overlay";
+        overlay.setAttribute("role", "dialog");
+        overlay.setAttribute("aria-modal", "true");
+        overlay.innerHTML = `
+          <div class="update-card crop-card">
+            <h2>Acomodar foto</h2>
+            <p>Arrastra para mover y usa el control para hacer zoom.</p>
+            <div class="crop-stage" id="cropStage">
+              <img id="cropImg" alt="">
+            </div>
+            <div class="crop-zoom-row">
+              🔍<input type="range" class="crop-zoom" id="cropZoom" min="100" max="300" value="100">
+            </div>
+            <div class="update-actions">
+              <button type="button" class="update-later" id="cropCancel">Cancelar</button>
+              <button type="button" class="update-now" id="cropConfirm">Usar foto</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+
+        const stage = overlay.querySelector("#cropStage");
+        const cropImg = overlay.querySelector("#cropImg");
+        const zoomInput = overlay.querySelector("#cropZoom");
+        cropImg.src = img.src;
+
+        const naturalW = img.naturalWidth || img.width;
+        const naturalH = img.naturalHeight || img.height;
+        const baseScale = Math.max(STAGE / naturalW, STAGE / naturalH);
+        let zoom = 1, panX = 0, panY = 0;
+
+        function render() {
+          const scale = baseScale * zoom;
+          const dispW = naturalW * scale, dispH = naturalH * scale;
+          const maxPanX = Math.max(0, (dispW - STAGE) / 2);
+          const maxPanY = Math.max(0, (dispH - STAGE) / 2);
+          panX = Math.min(maxPanX, Math.max(-maxPanX, panX));
+          panY = Math.min(maxPanY, Math.max(-maxPanY, panY));
+          cropImg.style.width = dispW + "px";
+          cropImg.style.height = dispH + "px";
+          cropImg.style.left = ((STAGE - dispW) / 2 + panX) + "px";
+          cropImg.style.top = ((STAGE - dispH) / 2 + panY) + "px";
+        }
+        render();
+
+        let dragging = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+        stage.addEventListener("pointerdown", (event) => {
+          dragging = true;
+          startX = event.clientX; startY = event.clientY;
+          startPanX = panX; startPanY = panY;
+          try { stage.setPointerCapture(event.pointerId); } catch (error) {}
+        });
+        stage.addEventListener("pointermove", (event) => {
+          if (!dragging) return;
+          panX = startPanX + (event.clientX - startX);
+          panY = startPanY + (event.clientY - startY);
+          render();
+        });
+        const stopDrag = () => { dragging = false; };
+        stage.addEventListener("pointerup", stopDrag);
+        stage.addEventListener("pointercancel", stopDrag);
+        stage.addEventListener("wheel", (event) => {
+          event.preventDefault();
+          zoom = Math.min(3, Math.max(1, zoom + (event.deltaY < 0 ? 0.08 : -0.08)));
+          zoomInput.value = String(Math.round(zoom * 100));
+          render();
+        }, { passive: false });
+        zoomInput.addEventListener("input", () => {
+          zoom = Number(zoomInput.value) / 100;
+          render();
+        });
+
+        const onEscape = (event) => {
+          if (event.key === "Escape") finish(null);
+        };
+        document.addEventListener("keydown", onEscape);
+
+        function finish(result) {
+          document.removeEventListener("keydown", onEscape);
+          overlay.remove();
+          resolve(result);
+        }
+
+        overlay.querySelector("#cropCancel").addEventListener("click", () => finish(null));
+        overlay.querySelector("#cropConfirm").addEventListener("click", () => {
+          const scale = baseScale * zoom;
+          const dispW = naturalW * scale, dispH = naturalH * scale;
+          const left = (STAGE - dispW) / 2 + panX;
+          const top = (STAGE - dispH) / 2 + panY;
+          const sSize = STAGE / scale;
+          const sx = Math.min(Math.max(0, -left / scale), naturalW - sSize);
+          const sy = Math.min(Math.max(0, -top / scale), naturalH - sSize);
+          const outCanvas = document.createElement("canvas");
+          outCanvas.width = 480;
+          outCanvas.height = 480;
+          outCanvas.getContext("2d").drawImage(img, sx, sy, sSize, sSize, 0, 0, 480, 480);
+          finish(outCanvas);
+        });
+      });
+    }
+
+    async function compressProfilePhoto(file) {
+      const dataUrl = await fileToDataUrl(file);
+      const img = document.createElement("img");
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error("Imagen invalida."));
+        img.src = dataUrl;
+      });
+      const croppedCanvas = await openPhotoCropOverlay(img);
+      if (!croppedCanvas) return null;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      // La foto se guarda en base64 dentro de una celda de Google Sheets (limite ~50000
+      // caracteres): se prueba con calidad/tamano decrecientes hasta quedar comodamente
+      // por debajo de ese limite, en vez de fallar con fotos grandes o muy detalladas.
+      const attempts = [{ max: 480, quality: 0.75 }, { max: 360, quality: 0.6 }, { max: 240, quality: 0.5 }];
+      let result = null;
+      for (const attempt of attempts) {
+        canvas.width = attempt.max;
+        canvas.height = attempt.max;
+        ctx.drawImage(croppedCanvas, 0, 0, attempt.max, attempt.max);
+        result = canvas.toDataURL("image/jpeg", attempt.quality);
+        if (result.length <= 40000) break;
+      }
+      return result;
+    }
+
+    async function removeProfilePhoto_(identity, onRemoved) {
+      if (!confirm("¿Seguro que quieres eliminar la foto?")) return false;
+      try {
+        const response = await callLoginApi("deleteProfilePhoto", { rol: identity.rol, usuario: identity.usuario });
+        if (!response || !response.success) {
+          alert((response && response.message) || "No se pudo eliminar la foto.");
+          return false;
+        }
+        if (state.currentSession) state.currentSession.fotoPerfil = "";
+        persistSession(state.currentSession);
+        renderHeaderAvatar("");
+        if (onRemoved) onRemoved();
+        return true;
+      } catch (error) {
+        alert("No se pudo contactar el servidor. Intenta de nuevo.");
+        return false;
+      }
+    }
+
+    function openPhotoLightbox(url) {
+      if (document.querySelector(".photo-lightbox")) return;
+      const overlay = document.createElement("div");
+      overlay.className = "update-overlay photo-lightbox";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.innerHTML = `
+        <div class="lightbox-card">
+          <img class="lightbox-img" src="${escapeHtml(url)}" alt="Foto de perfil">
+          <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Cerrar" title="Cerrar">✕</button>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const closeOverlay = () => overlay.remove();
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(); });
+      const onEscape = (event) => {
+        if (event.key === "Escape") { closeOverlay(); document.removeEventListener("keydown", onEscape); }
+      };
+      document.addEventListener("keydown", onEscape);
+
+      overlay.querySelector("#lightboxClose").addEventListener("click", closeOverlay);
+    }
+
+    function resetProfilePhotoUi_(previewEl) {
+      if (previewEl) {
+        previewEl.removeAttribute("src");
+        previewEl.style.display = "none";
+      }
+      const placeholder = document.getElementById("profileAvatarPlaceholder");
+      if (placeholder) placeholder.style.display = "";
+      const label = document.getElementById("profilePhotoLabel");
+      if (label) label.textContent = "Subir foto";
+      const sep = document.getElementById("profileLinkSep");
+      if (sep) sep.style.display = "none";
+      const deleteLink = document.getElementById("profileDeletePhoto");
+      if (deleteLink) deleteLink.style.display = "none";
+    }
+
+    function openProfileOverlay() {
+      if (document.querySelector(".profile-overlay")) return;
+      const session = state.currentSession || {};
+      const identity = currentSessionIdentity();
+      const overlay = document.createElement("div");
+      overlay.className = "update-overlay profile-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      const fotoActual = session.fotoPerfil || "";
+      overlay.innerHTML = `
+        <div class="update-card profile-card">
+          <h2>Mi perfil</h2>
+          <div class="profile-avatar-wrap">
+            <img class="profile-photo-preview" id="profilePhotoPreview" src="${fotoActual ? escapeHtml(fotoActual) : ''}" alt="" ${fotoActual ? "" : 'style="display:none;"'}>
+            <div class="profile-avatar-placeholder" id="profileAvatarPlaceholder" ${fotoActual ? 'style="display:none;"' : ''}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          </div>
+          <div class="profile-photo-links">
+            <label for="profilePhotoInput" class="profile-link" id="profilePhotoLabel">${fotoActual ? "Cambiar foto" : "Subir foto"}</label>
+            <input id="profilePhotoInput" type="file" accept="image/*" style="display:none;">
+            <span class="profile-link-sep" id="profileLinkSep" ${fotoActual ? "" : 'style="display:none;"'}>·</span>
+            <button type="button" class="profile-link profile-link-danger" id="profileDeletePhoto" ${fotoActual ? "" : 'style="display:none;"'}>Eliminar foto</button>
+          </div>
+          <div class="pwd-msg" id="profilePhotoMsg" style="color:#a32d2d;font-size:.8rem;text-align:center;min-height:1.1em;"></div>
+          <div class="profile-identity">
+            <div class="profile-identity-name">${escapeHtml(session.user || identity.usuario || "Usuario")}</div>
+            <span class="profile-role-badge">${escapeHtml(identity.rol === "admin" ? "Administrador" : identity.rol)}</span>
+          </div>
+          <div class="profile-actions-pro">
+            <button type="button" class="profile-btn-primary" id="profileChangePwd">🔒 Cambiar contraseña</button>
+            <button type="button" class="profile-btn-close" id="profileClose">Cerrar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const closeOverlay = () => overlay.remove();
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(); });
+      overlay.querySelector("#profileClose").addEventListener("click", closeOverlay);
+      overlay.querySelector("#profileChangePwd").addEventListener("click", () => {
+        closeOverlay();
+        openPasswordOverlay({ forced: false });
+      });
+      const photoInput = overlay.querySelector("#profilePhotoInput");
+      const photoMsg = overlay.querySelector("#profilePhotoMsg");
+      const photoPreview = overlay.querySelector("#profilePhotoPreview");
+      const photoLabel = overlay.querySelector("#profilePhotoLabel");
+      const photoSep = overlay.querySelector("#profileLinkSep");
+      const deleteLink = overlay.querySelector("#profileDeletePhoto");
+      const placeholder = overlay.querySelector("#profileAvatarPlaceholder");
+      photoPreview.addEventListener("click", () => {
+        if (photoPreview.src && photoPreview.style.display !== "none") openPhotoLightbox(photoPreview.src);
+      });
+      deleteLink.addEventListener("click", async () => {
+        await removeProfilePhoto_(identity, () => resetProfilePhotoUi_(photoPreview));
+      });
+      photoInput.addEventListener("change", async () => {
+        const file = photoInput.files && photoInput.files[0];
+        if (!file) return;
+        try {
+          const foto = await compressProfilePhoto(file);
+          if (!foto) return; // el usuario cancelo el recorte
+          photoMsg.textContent = "Subiendo foto...";
+          const response = await callLoginApi("updateProfilePhoto", { rol: identity.rol, usuario: identity.usuario, foto });
+          if (!response || !response.success) {
+            photoMsg.textContent = (response && response.message) || "No se pudo guardar la foto.";
+            return;
+          }
+          photoMsg.textContent = "";
+          photoPreview.src = foto;
+          photoPreview.style.display = "";
+          placeholder.style.display = "none";
+          photoLabel.textContent = "Cambiar foto";
+          photoSep.style.display = "";
+          deleteLink.style.display = "";
+          if (state.currentSession) state.currentSession.fotoPerfil = response.url || foto;
+          persistSession(state.currentSession);
+          renderHeaderAvatar((state.currentSession && state.currentSession.fotoPerfil) || foto);
+        } catch (error) {
+          photoMsg.textContent = "No se pudo subir la foto. Intenta de nuevo.";
+        } finally {
+          try { photoInput.value = ""; } catch (error) {}
+        }
+      });
+    }
+
+    function activateModule(moduleName, session, pushHistory) {
+      const module = MODULE_DEFINITIONS[moduleName] || { label: moduleName };
+      const currentModule = readStored(ACTIVE_MODULE_KEY);
+      const existingFrame = $("#blankPanel .module-frame");
+      if (currentModule === moduleName && existingFrame) {
+        $("#appScreen").classList.remove("sidebar-open");
+        resetIdleTimer();
+        return;
+      }
+      document.querySelectorAll(".module-link").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.module === moduleName);
+      });
+      $("#activeModuleTitle").textContent = module.label;
+      $("#topModuleTitle").textContent = module.label;
+      $("#activeModuleMode").textContent = session.permissions === "lectura" ? "Solo lectura" : "Acceso autorizado";
+      writeStored(ACTIVE_MODULE_KEY, moduleName);
+      setConnectionStatus(module.embed ? "warn" : "warn", module.embed ? "Conectando" : "Sin base de datos");
+      const panel = $("#blankPanel");
+      panel.classList.toggle("module-host", !!module.embed);
+      if (isIceModule(moduleName) && !session.iceToken) {
+        panel.classList.remove("module-host");
+        panel.innerHTML = `<div class="module-error"><strong>Preparando ICE...</strong><p>Usando la sesión validada del login principal. Espere un momento.</p></div>`;
+        setConnectionStatus("warn", "ICE preparando");
+        const preparation = icePreparationPromise || startIcePreparation(session, { role: session.role, user: session.user });
+        preparation.then((updated) => {
+          if (readStored(ACTIVE_MODULE_KEY) !== moduleName) return;
+          if (updated && updated.iceToken) {
+            activateModule(moduleName, updated, false);
+          } else {
+            const reason = (updated && updated.moduleErrors && updated.moduleErrors.ICE) || "No se pudo preparar el acceso seguro a ICE.";
+            panel.innerHTML = `<div class="module-error"><strong>ICE no disponible temporalmente.</strong><p>${escapeHtml(reason)}</p><p>Los demás módulos pueden seguir usándose con normalidad.</p></div>`;
+            setConnectionStatus("err", "ICE sin conexión");
+          }
+        });
+      } else if (module.embed) {
+        const src = buildModuleSrc(module, moduleName, session);
+        panel.innerHTML = `<iframe class="module-frame" src="${src}" title="${module.label}" loading="eager"></iframe>`;
+        const frame = panel.querySelector("iframe");
+        if (frame) {
+          applyContentZoom();
+          frame.addEventListener("load", () => setTimeout(() => {
+            if (readStored(ACTIVE_MODULE_KEY) === moduleName) setConnectionStatus("ok", "Conectado");
+            applyResponsiveMode();
+            try { frame.contentWindow.dispatchEvent(new Event("resize")); } catch (error) {}
+          }, 700));
+          frame.addEventListener("error", () => setConnectionStatus("err", "Sin conexión"));
+        }
+      } else {
+        panel.innerHTML = `<p>El módulo ${module.label} está listo para recibir su contenido.</p>`;
+        setConnectionStatus("warn", "Sin base de datos");
+      }
+      updateContentZoomVisibility();
+      $("#appScreen").classList.remove("sidebar-open");
+      if (pushHistory) history.pushState({ moduleName }, "", "#" + encodeURIComponent(moduleName));
+      resetIdleTimer();
+    }
+
+    const CONTENT_ZOOM_KEY = "opaustro_content_zoom";
+    const CONTENT_ZOOM_MIN = 0.6;
+    const CONTENT_ZOOM_MAX = 2;
+    const CONTENT_ZOOM_STEP = 0.1;
+    let contentZoom = Number(readStored(CONTENT_ZOOM_KEY)) || 1;
+    if (Number.isNaN(contentZoom) || contentZoom < CONTENT_ZOOM_MIN || contentZoom > CONTENT_ZOOM_MAX) contentZoom = 1;
+
+    function applyContentZoom() {
+      const frame = $("#blankPanel .module-frame");
+      const resetBtn = $("#zoomResetBtn");
+      if (resetBtn) resetBtn.textContent = Math.round(contentZoom * 100) + "%";
+      const outBtn = $("#zoomOutBtn");
+      const inBtn = $("#zoomInBtn");
+      if (outBtn) outBtn.disabled = contentZoom <= CONTENT_ZOOM_MIN + 0.001;
+      if (inBtn) inBtn.disabled = contentZoom >= CONTENT_ZOOM_MAX - 0.001;
+      if (!frame) return;
+      frame.style.transform = `scale(${contentZoom})`;
+      frame.style.width = (100 / contentZoom) + "%";
+      frame.style.height = (100 / contentZoom) + "%";
+    }
+
+    function setContentZoom(value) {
+      contentZoom = Math.max(CONTENT_ZOOM_MIN, Math.min(CONTENT_ZOOM_MAX, value));
+      writeStored(CONTENT_ZOOM_KEY, String(contentZoom));
+      applyContentZoom();
+    }
+
+    function updateContentZoomVisibility() {
+      const float = $("#contentZoomFloat");
+      if (!float) return;
+      const hasFrame = !!$("#blankPanel .module-frame");
+      float.hidden = !hasFrame;
+    }
+
+    function persistSession(session) {
+      writeStored(SESSION_KEY, JSON.stringify({
+        session,
+        lastActivity: Date.now()
+      }));
+    }
+
+    function restoreSession() {
+      try {
+        const raw = readStored(SESSION_KEY);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        if (!saved.session || Date.now() - Number(saved.lastActivity || 0) > SESSION_TIMEOUT_MS) {
+          logout(true);
+          return false;
+        }
+        renderApp(saved.session);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function resetIdleTimer() {
+      if (!state.currentSession) return;
+      persistSession(state.currentSession);
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => logout(true), SESSION_TIMEOUT_MS);
+    }
+
+    ["click", "keydown", "touchstart", "mousemove", "scroll"].forEach((eventName) => {
+      window.addEventListener(eventName, resetIdleTimer, { passive: true });
+    });
+
+    function logout(expired) {
+      stopSessionHeartbeat(true);
+      state.currentSession = null;
+      clearTimeout(inactivityTimer);
+      removeStored(SESSION_KEY);
+      removeStored(ACTIVE_MODULE_KEY);
+      $("#appScreen").classList.add("is-hidden");
+      $("#appScreen").classList.remove("sidebar-open");
+      $("#loginScreen").classList.remove("is-hidden");
+      form.reset();
+      renderUsers("");
+      setMessage(expired ? "Sesión cerrada por inactividad." : "", expired ? "error" : "");
+      $("#password").type = "password";
+      $("#togglePassword").textContent = "Ver";
+      history.replaceState({}, "", location.pathname);
+      checkReleaseVersion();
+    }
+
+    roleSelect.addEventListener("change", () => {
+      renderUsers(roleSelect.value);
+      setMessage("", "");
+    });
+
+    $("#togglePassword").addEventListener("click", () => {
+      const password = $("#password");
+      const isPassword = password.type === "password";
+      password.type = isPassword ? "text" : "password";
+      $("#togglePassword").textContent = isPassword ? "Ocultar" : "Ver";
+      password.focus();
+    });
+
+    $("#logoutButton").addEventListener("click", () => logout(false));
+    $("#profileButton").addEventListener("click", () => openProfileOverlay());
+    $("#avatarButton").addEventListener("click", () => openProfileOverlay());
+    $(".menu-toggle").addEventListener("click", () => {
+      const app = $("#appScreen");
+      applyResponsiveMode();
+      if (app.classList.contains("is-mobile-layout")) app.classList.toggle("sidebar-open");
+      else app.classList.toggle("sidebar-expanded");
+    });
+
+    document.addEventListener("click", (event) => {
+      const app = $("#appScreen");
+      if (!app || app.hidden) return;
+      const target = event.target;
+      const insideSidebar = target.closest && target.closest(".module-sidebar");
+      const insideMenuButton = target.closest && target.closest(".menu-toggle");
+      const insideBottom = target.closest && target.closest("#bottomModules");
+      if (app.classList.contains("sidebar-open") && !insideSidebar && !insideMenuButton) {
+        app.classList.remove("sidebar-open");
+      }
+      if (!insideBottom) restoreBottomGroups();
+    });
+
+    window.addEventListener("popstate", (event) => {
+      if (!state.currentSession) return;
+      const storedModule = readStored(ACTIVE_MODULE_KEY);
+      const moduleName = (event.state && event.state.moduleName) || storedModule;
+      if (moduleName) {
+        activateModule(moduleName, state.currentSession, false);
+        history.replaceState({ moduleName }, "", "#" + encodeURIComponent(moduleName));
+      }
+    });
+    window.addEventListener("online", flushAccessLogQueue);
+    window.addEventListener("focus", flushAccessLogQueue);
+    window.addEventListener("focus", checkReleaseVersion);
+    $("#zoomOutBtn").addEventListener("click", () => setContentZoom(contentZoom - CONTENT_ZOOM_STEP));
+    $("#zoomInBtn").addEventListener("click", () => setContentZoom(contentZoom + CONTENT_ZOOM_STEP));
+    $("#zoomResetBtn").addEventListener("click", () => setContentZoom(1));
+    window.addEventListener("beforeunload", () => {
+      if (state.currentSession && state.currentSession.sessionId) {
+        postSessionAction("endSession", { sessionId: state.currentSession.sessionId });
+      }
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setMessage("", "");
+      submitButton.disabled = true;
+      submitButton.textContent = "Validando...";
+
+      try {
+        const credentials = {
+          role: roleSelect.value,
+          user: (normalizeRoleName(roleSelect.value) === "VENDEDOR" ? userTyped.value : userSelect.value).trim(),
+          password: $("#password").value.trim()
+        };
+        let response = await authenticate(credentials);
+
+        if (!response || !response.success) {
+          setMessage(response && response.message ? response.message : "Credenciales no validas.", "error");
+          return;
+        }
+
+        recordAccessLog(response, credentials);
+        renderApp(response, credentials);
+        startIcePreparation(response, credentials);
+      } catch (error) {
+        setMessage("No se pudo validar el acceso. Intente nuevamente.", "error");
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Ingresar";
+      }
+    });
+
+    const footerVersion = $("#loginFooterVersion");
+    if (footerVersion) footerVersion.textContent = APP_VERSION;
+    loadLoginData();
+    flushAccessLogQueue();
+    restoreSession();
+    checkReleaseVersion();
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
