@@ -74,7 +74,7 @@
       <div class="kpi"><div class="lab">Empleados (activos)</div><div class="big" id="kEmp">0</div></div>
       <div class="kpi"><div class="lab">Días pendientes (total)</div><div class="big" id="kDias">0</div></div>
       <div class="kpi"><div class="lab">Valor $ (total)</div><div class="big" id="kVal">$0,00</div></div>
-      <div class="kpi"><div class="lab">Cargos / Departamentos</div><div class="big" id="kCat">0</div></div>
+      <div class="kpi"><div class="lab">Días provisión 2026 (total)</div><div class="big" id="kProv">0</div></div>
     </div>
 
     <div class="filters">
@@ -99,6 +99,7 @@
             <th class="sortable" data-k="cargo">Cargo<span class="ar"></span></th>
             <th class="sortable" data-k="fecha">Ingreso<span class="ar"></span></th>
             <th class="sortable num" data-k="dias">Días pend.<span class="ar"></span></th>
+            <th class="sortable num" data-k="prov" title="Días provisionados en el ciclo actual, hasta jun-2026">Días prov. 2026<span class="ar"></span></th>
             <th class="sortable num" data-k="valor">Valor $<span class="ar"></span></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
@@ -133,10 +134,33 @@ function sortRows(rows){
   if(!sort.key) return rows;
   const k=sort.key, d=sort.dir;
   return rows.slice().sort((a,b)=>{
-    if(k==='dias'||k==='valor') return d*((a[k]||0)-(b[k]||0));
+    if(k==='dias'||k==='valor'||k==='prov') return d*((a[k]||0)-(b[k]||0));
     if(k==='fecha') return d*(parseFecha(a.fecha)-parseFecha(b.fecha));
     return d*String(a[k]||'').localeCompare(String(b[k]||''),'es');
   });
+}
+// Corte del cálculo de provisión (junio 2026)
+const CUT={y:2026,m:6,d:30};
+// Días de vacación provisionados en el ciclo actual (desde el último aniversario <= corte),
+// a 15 días/año, base comercial 30/360, prorrateando el día de ingreso.
+function provision2026(fechaStr){
+  const m=String(fechaStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if(!m) return 0;
+  let dd=+m[1], mm=+m[2], yy=+m[3]; if(yy<100) yy+=2000;
+  const cutNum=CUT.y*10000+CUT.m*100+CUT.d;
+  const ingNum=yy*10000+mm*100+dd;
+  // aniversario en 2026 (mismo mes/día). Si aún no llega al corte, usar el de 2025.
+  let anivY = (2026*10000+mm*100+dd) <= cutNum ? 2026 : 2025;
+  let aniv={y:anivY,m:mm,d:dd};
+  let anivNum=aniv.y*10000+aniv.m*100+aniv.d;
+  // el ciclo no puede empezar antes de la fecha de ingreso
+  if(anivNum<ingNum){ aniv={y:yy,m:mm,d:dd}; anivNum=ingNum; }
+  if(anivNum>cutNum) return 0; // ingresó después del corte
+  // días 30/360 desde aniversario hasta el corte
+  const d1=Math.min(aniv.d,30), d2=Math.min(CUT.d,30);
+  let dias=(CUT.y-aniv.y)*360+(CUT.m-aniv.m)*30+(d2-d1);
+  if(dias<0)dias=0;
+  return Math.round(dias/24*100)/100; // 15/360 = 1/24
 }
 
 function fetchBase(){
@@ -159,9 +183,10 @@ function parseGviz(resp){
   const cellV=(c,i)=>{ const x=(i>=0&&c[i])?c[i]:null; return x==null?'':(x.v==null?'':x.v); };
   const cellF=(c,i)=>{ const x=(i>=0&&c[i])?c[i]:null; return x==null?'':(x.f!=null?x.f:(x.v==null?'':x.v)); };
   base=(resp.table.rows||[]).map(r=>{ const c=r.c||[];
+    const fecha=String(cellF(c,iFec)).trim();
     return { ci:String(cellV(c,iCI)).trim(), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
-      depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha:String(cellF(c,iFec)).trim(),
-      valor:toNum(cellV(c,iVal)), dias:toNum(cellV(c,iDias)) };
+      depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha,
+      valor:toNum(cellV(c,iVal)), dias:toNum(cellV(c,iDias)), prov:provision2026(fecha) };
   }).filter(r=>r.nombre);
   buildFilters(); render(); status('✓ '+base.length+' empleados cargados desde el Sheet.');
 }
@@ -186,15 +211,15 @@ function render(){
   $('kEmp').textContent=activos.length||base.length;
   $('kDias').textContent=fmtD(base.reduce((a,b)=>a+b.dias,0));
   $('kVal').textContent=fmt$(base.reduce((a,b)=>a+b.valor,0));
-  $('kCat').textContent=[...new Set(base.map(r=>r.cargo))].length+' / '+[...new Set(base.map(r=>r.depto))].length;
+  $('kProv').textContent=fmtD(base.reduce((a,b)=>a+b.prov,0));
   $('cnt').textContent=rows.length+' de '+base.length;
   const sorted=sortRows(rows);
   $('tbody').innerHTML=sorted.map((r,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
     <td>${r.depto}</td><td>${r.cargo}</td><td>${r.fecha||'—'}</td>
-    <td class="num">${fmtD(r.dias)}</td><td class="num">${fmt$(r.valor)}</td></tr>`).join('');
+    <td class="num">${fmtD(r.dias)}</td><td class="num" style="color:var(--teal-deep);font-weight:600">${fmtD(r.prov)}</td><td class="num">${fmt$(r.valor)}</td></tr>`).join('');
   $('tblEmpty').style.display=rows.length?'none':'block';
-  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmt$(rows.reduce((a,b)=>a+b.valor,0))}</td></tr>`;
+  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.prov,0))}</td><td class="num">${fmt$(rows.reduce((a,b)=>a+b.valor,0))}</td></tr>`;
   document.querySelectorAll('th.sortable').forEach(th=>{ const on=th.dataset.k===sort.key; th.classList.toggle('on',on); const ar=th.querySelector('.ar'); if(ar) ar.textContent=on?(sort.dir<0?'▼':'▲'):'⇅'; });
 }
 ['fDep','fCar','fEst'].forEach(id=>$(id).onchange=render);
