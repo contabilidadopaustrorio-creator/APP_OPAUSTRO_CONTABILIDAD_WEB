@@ -2477,7 +2477,7 @@
         "../manifest.webmanifest?v=" + encodeURIComponent(current),
         "../Recuros_imagenes/logo_color.png?v=1.0.0",
         "../Recuros_imagenes/icon-192.png?v=1.0.0",
-        "../Contabilidad/index.html?v=" + encodeURIComponent(current)
+        "../Gastos/index.html?v=" + encodeURIComponent(current)
       ];
       let done = 0;
       for (const asset of assets) {
@@ -2610,11 +2610,11 @@
         path: "../Admin/control_modulos.html?embed=1",
         embed: true
       },
-      Contabilidad: {
-        label: "Contabilidad",
-        symbol: "report",
+      ControlGastos: {
+        label: "Control de gastos",
+        symbol: "cost",
         icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
-        path: "../Contabilidad/index.html?embed=1",
+        path: "../Gastos/index.html?embed=1",
         embed: true
       },
       Ventas: {
@@ -2789,7 +2789,7 @@
         label: "Contabilidad",
         icon: "&#128202;",
         iconPath: "../Recuros_imagenes/reporte.png?v=1.0.0",
-        modules: ["Contabilidad"]
+        modules: ["ControlGastos"]
       }
     ];
 
