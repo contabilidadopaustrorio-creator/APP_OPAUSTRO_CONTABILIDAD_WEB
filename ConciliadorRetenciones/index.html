@@ -387,7 +387,7 @@ function reconcile(){
   const payload=[]; let extra=0;
   for(const [k,s] of sysMap){ const x=sriMap.get(k);
     const vs=s.valorSis, vsri=x?x.valorSRI:null;
-    let ec; if(x) ec=Math.abs((vs||0)-(vsri||0))<=tol?0:1; else ec=2;
+    let ec; if(x) ec=(Math.round(Math.abs((vs||0)-(vsri||0))*100)<=Math.round(tol*100))?0:1; else ec=2;
     const anio=(x&&x.anio)||s.anio||0, mes=(x&&x.mes)||s.mes||0;
     payload.push([ s.razon||(x?x.razon:'')||'', s.ruc, s.numRet, anio, mes, vs, vsri, +(((vs||0)-(vsri||0))).toFixed(2), ec ]);
   }
