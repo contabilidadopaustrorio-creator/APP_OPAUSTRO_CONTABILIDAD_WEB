@@ -3071,14 +3071,9 @@
 
     function modulesForRole(role) {
       const normalized = normalizeRoleName(role);
-      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return ADMIN_GERENCIA_MODULES;
-      if (normalized === "GERENCIA" || normalized === "GERENTE") return GERENCIA_ACCESS_MODULES;
-      if (normalized === "LOGISTICA") return LOGISTICA_MODULES;
-      if (normalized === "TECNICO" || normalized === "TECNICO_LOGISTICA") return ["Logistica"];
-      if (normalized === "SUPERVISOR") return VENTAS_MODULES;
-      if (normalized === "CARTERA") return CARTERA_MODULES;
-      if (normalized === "VENDEDOR" || normalized === "VENTAS") return VENDEDOR_MODULES;
-      if (normalized === "VENDEDORES_ICE" || normalized === "VENDEDOR_ICE" || normalized === "ICE") return [...ICE_OPERATIVO_MODULES, ...VENDEDOR_MODULES];
+      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return [...ACCESS_CONTROL_MODULES, "ControlGastos"];
+      if (normalized === "CONTADOR") return ["ControlGastos"];
+      if (normalized === "ASISTENTE_CONTABLE" || normalized === "ASISTENTE CONTABLE" || normalized === "ASISTENTECONTABLE") return ["ControlGastos"];
       return null;
     }
 
