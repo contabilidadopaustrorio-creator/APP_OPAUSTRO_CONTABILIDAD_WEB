@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control de Vacaciones — OPAUSTRO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f6f9; --ink:#16232b; --soft:#4a5b66; --faint:#7b8a93;
+    --card:#fff; --line:#e3e9ec; --line2:#cfd8dd;
+    --teal:#0f6d7a; --teal-deep:#0b5561; --teal-wash:#e7f1f2;
+    --ok:#15803d; --warn:#b45309; --shadow:0 1px 2px rgba(16,35,43,.04),0 2px 8px rgba(16,35,43,.05);
+    --mono:"Consolas",ui-monospace,monospace; --sans:system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);line-height:1.45}
+  .wrap{max-width:1120px;margin:0 auto;padding:20px 20px 60px}
+  header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:14px;
+    padding-bottom:14px;border-bottom:2px solid var(--ink);margin-bottom:18px}
+  h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.4px}
+  .sub{margin:5px 0 0;color:var(--soft);font-size:13.5px}
+  .stamp{text-align:right;font-size:12px;color:var(--faint)}
+  .stamp b{display:block;font-size:13px;color:var(--teal-deep)}
+  .banner{font-size:12.5px;color:var(--teal-deep);background:var(--teal-wash);border:1px solid #cfe3e5;border-radius:10px;padding:10px 13px;margin-bottom:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
+  .card h2{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .zone{border:2px dashed var(--line2);border-radius:10px;padding:24px 14px;text-align:center;cursor:pointer;transition:.12s}
+  .zone:hover,.zone.over{border-color:var(--teal);background:var(--teal-wash)}
+  .zone .ic{font-size:28px}
+  .zone .big{font-weight:600;font-size:13.5px;margin-top:6px}
+  .zone .sm{font-size:11.5px;color:var(--faint);margin-top:3px}
+  .zone.loaded{border-style:solid;border-color:var(--ok);background:#e7f4ec}
+  .zone input{display:none}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);font-weight:600}
+  .kpi .big{font-size:26px;font-weight:700;margin-top:5px}
+  .tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .search{font-size:13px;padding:7px 11px;border:1px solid var(--line2);border-radius:8px;min-width:240px}
+  .btn{font:inherit;font-size:13px;font-weight:600;padding:8px 15px;border-radius:8px;cursor:pointer;border:1px solid var(--teal);background:var(--teal);color:#fff}
+  .btn.ghost{background:#fff;color:var(--teal-deep)}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:#fbfcfc;text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:8px 12px;border-bottom:1px solid var(--line)}
+  tr:hover td{background:#fbfcfc}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  tfoot td{font-weight:700;background:#fbfcfc;border-top:2px solid var(--line2)}
+  .empty{padding:36px;text-align:center;color:var(--faint);font-size:13.5px}
+  .soon{opacity:.75}
+  .soon .card{background:#fbfcfc}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--warn);background:#fbf0e4;border-radius:20px;padding:2px 9px}
+  .status{font-size:12.5px;color:var(--soft);margin:6px 0 0;min-height:16px}
+  footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>🏖️ Control de Vacaciones</h1>
+      <p class="sub">Nómina, días pendientes, provisión mensual (IESS), días tomados y planificación.</p>
+    </div>
+    <div class="stamp"><b>Corte base: Junio 2026</b>saldos iniciales de días</div>
+  </header>
+
+  <div class="banner">
+    <b>Paso 1:</b> carga la <b>nómina base</b> (Excel/CSV) con los empleados, sus <b>días pendientes</b> a junio 2026 y el <b>valor $</b>.
+    Detecto las columnas por su nombre; si algo no cuadra, ajusta los encabezados del archivo.
+  </div>
+
+  <div class="card">
+    <h2>📥 Cargar nómina base</h2>
+    <div class="zone" id="zone">
+      <input type="file" id="inp" accept=".xlsx,.xls,.csv">
+      <div class="ic">📄</div>
+      <div class="big">Arrastra o haz clic para seleccionar</div>
+      <div class="sm">.xlsx, .xls o .csv — columnas: Empleado, Cédula (op.), Días pendientes, Valor $</div>
+      <div class="status" id="fileMsg"></div>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="dash" style="display:none">
+    <div class="kpis">
+      <div class="kpi"><div class="lab">Empleados</div><div class="big" id="kEmp">0</div></div>
+      <div class="kpi"><div class="lab">Días pendientes (total)</div><div class="big" id="kDias">0</div></div>
+      <div class="kpi"><div class="lab">Valor $ (total)</div><div class="big" id="kVal">$0,00</div></div>
+    </div>
+    <div class="card">
+      <h2>👥 Nómina cargada</h2>
+      <div class="tools">
+        <input class="search" id="search" type="text" placeholder="Buscar empleado o cédula…">
+        <button class="btn ghost" id="btnClear">Quitar base</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>#</th><th>Empleado</th><th>Cédula</th><th class="num">Días pendientes</th><th class="num">Valor $</th></tr></thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+      <div class="empty" id="tblEmpty" style="display:none">Sin coincidencias.</div>
+    </div>
+  </div>
+
+  <div class="soon">
+    <div class="card">
+      <h2>📆 Provisión mensual (IESS) <span class="tag">Próximamente</span></h2>
+      <p class="sub" style="margin:0">Aquí subirás la planilla del IESS cada mes y se calculará la provisión ($) y los días acumulados por empleado.</p>
+    </div>
+    <div class="card">
+      <h2>➖ Registrar días tomados <span class="tag">Próximamente</span></h2>
+      <p class="sub" style="margin:0">Descontarás del saldo los días que cada empleado ya tomó.</p>
+    </div>
+    <div class="card">
+      <h2>🗓️ Planificación de vacaciones <span class="tag">Próximamente</span></h2>
+      <p class="sub" style="margin:0">Programarás las vacaciones futuras de cada empleado.</p>
+    </div>
+  </div>
+
+  <footer>La nómina cargada se guarda localmente en este navegador (temporal). Cuando conectemos el backend, quedará guardada de forma central y compartida.</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt$=n=>'$'+Number(n||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+const LS_KEY='opa_vac_base';
+let base=[];
+
+function norm(s){ return String(s==null?'':s).toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[^a-z0-9]/g,''); }
+function num(x){ let s=String(x==null?'':x).replace(/[$\s]/g,''); if(s.includes(',')&&s.includes('.')) s=s.replace(/\./g,'').replace(',','.'); else if(s.includes(',')) s=s.replace(',','.'); const n=parseFloat(s); return isNaN(n)?0:n; }
+
+function detectCols(header){
+  const idx={emp:-1,ced:-1,dias:-1,val:-1};
+  header.forEach((h,i)=>{ const n=norm(h);
+    if(idx.emp<0 && (n.includes('empleado')||n.includes('nombre')||n.includes('apellido')||n.includes('trabajador')||n.includes('colaborador'))) idx.emp=i;
+    if(idx.ced<0 && (n.includes('cedula')||n.includes('identificacion')||n==='ci'||n.includes('ruc'))) idx.ced=i;
+    if(idx.dias<0 && n.includes('dia') && (n.includes('pendient')||n.includes('saldo')||n.includes('acum')||n.includes('vacacion'))) idx.dias=i;
+    if(idx.val<0 && (n.includes('valor')||n.includes('monto')||n.includes('provision')||n.includes('dolar')||n.includes('usd'))) idx.val=i;
+  });
+  // respaldos: primera columna con texto = empleado; primera con "dia" = dias
+  if(idx.emp<0) idx.emp=0;
+  if(idx.dias<0) header.forEach((h,i)=>{ if(idx.dias<0 && norm(h).includes('dia')) idx.dias=i; });
+  return idx;
+}
+
+function loadFile(file){
+  if(!file) return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  const done=rows=>{
+    if(!rows.length){ $('status').textContent='El archivo está vacío.'; return; }
+    const header=rows[0].map(x=>String(x==null?'':x));
+    const c=detectCols(header);
+    base=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i]; if(!r) continue;
+      const emp=String(r[c.emp]==null?'':r[c.emp]).trim();
+      if(!emp) continue;
+      base.push({ emp, ced: c.ced>=0?String(r[c.ced]==null?'':r[c.ced]).trim():'', dias: c.dias>=0?num(r[c.dias]):0, val: c.val>=0?num(r[c.val]):0 });
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(base));
+    $('fileMsg').textContent='✓ '+file.name+' — '+base.length+' empleados';
+    $('zone').classList.add('loaded');
+    $('status').textContent='Columnas detectadas → Empleado: '+(header[c.emp]||'col '+(c.emp+1))+' · Días: '+(c.dias>=0?header[c.dias]:'no encontrada')+' · Valor: '+(c.val>=0?header[c.val]:'no encontrada');
+    render();
+  };
+  if(ext==='csv'){
+    const r=new FileReader();
+    r.onload=e=>{ const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim()); const sep=(lines[0].split(';').length>lines[0].split(',').length)?';':','; done(lines.map(l=>l.split(sep))); };
+    r.readAsText(file,'utf-8');
+  } else {
+    const r=new FileReader();
+    r.onload=e=>{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; done(XLSX.utils.sheet_to_json(ws,{header:1,defval:''})); };
+    r.readAsArrayBuffer(file);
+  }
+}
+
+function render(){
+  if(!base.length){ $('dash').style.display='none'; return; }
+  $('dash').style.display='block';
+  const q=norm($('search').value||'');
+  const rows=q?base.filter(r=>norm(r.emp+' '+r.ced).includes(q)):base;
+  $('kEmp').textContent=base.length;
+  $('kDias').textContent=base.reduce((a,b)=>a+b.dias,0).toLocaleString('es-EC',{maximumFractionDigits:2});
+  $('kVal').textContent=fmt$(base.reduce((a,b)=>a+b.val,0));
+  const tb=$('tbody');
+  tb.innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.emp}</td><td class="num" style="font-family:var(--mono)">${r.ced||'—'}</td><td class="num">${r.dias.toLocaleString('es-EC',{maximumFractionDigits:2})}</td><td class="num">${fmt$(r.val)}</td></tr>`).join('');
+  $('tblEmpty').style.display=rows.length?'none':'block';
+  $('tfoot').innerHTML=`<tr><td colspan="3">TOTAL (${rows.length})</td><td class="num">${rows.reduce((a,b)=>a+b.dias,0).toLocaleString('es-EC',{maximumFractionDigits:2})}</td><td class="num">${fmt$(rows.reduce((a,b)=>a+b.val,0))}</td></tr>`;
+}
+
+// eventos
+const z=$('zone');
+z.onclick=()=>$('inp').click();
+$('inp').onchange=e=>loadFile(e.target.files[0]);
+['dragover','dragenter'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.add('over');}));
+['dragleave','drop'].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();z.classList.remove('over');}));
+z.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+$('search').oninput=render;
+$('btnClear').onclick=()=>{ base=[]; localStorage.removeItem(LS_KEY); $('inp').value=''; $('zone').classList.remove('loaded'); $('fileMsg').textContent=''; $('status').textContent=''; render(); };
+
+// cargar base guardada
+try{ const s=localStorage.getItem(LS_KEY); if(s){ base=JSON.parse(s)||[]; if(base.length){ $('zone').classList.add('loaded'); $('fileMsg').textContent='✓ Base guardada — '+base.length+' empleados'; render(); } } }catch(e){}
+</script>
+</body>
+</html>
