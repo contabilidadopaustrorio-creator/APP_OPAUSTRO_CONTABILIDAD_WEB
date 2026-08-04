@@ -234,7 +234,7 @@
         <div class="empty" id="emptyMsg" hidden>No hay retenciones que coincidan con los filtros.</div>
       </div>
       <div class="pager">
-        <label class="toggle"><input type="checkbox" id="onlyNov" checked> Mostrar solo con novedades (diferencias y no encontradas en SRI)</label>
+        <label class="toggle"><input type="checkbox" id="onlyNov" checked> Mostrar solo con novedades (cualquier diferencia, incluida de centavos, y no encontradas en SRI)</label>
         <div class="pg"><span id="pgInfo"></span><button id="pgPrev">‹ Anterior</button><button id="pgNext">Siguiente ›</button></div>
       </div>
     </div>
@@ -539,7 +539,7 @@ function renderMonths(rows){
   $('monthFoot').innerHTML=`<tr><td>Total</td><td class="tnum">${tot[0]}</td><td class="tnum">${tot[1]}</td><td class="tnum">${tot[2]}</td><td class="tnum">${tot[3]}</td><td class="tnum">${money(tS)}</td><td class="tnum">${money(tR)}</td><td></td></tr>`;
 }
 function detailRows(rows){ let r=rows.slice();
-  if(state.activeEc!=null) r=r.filter(x=>x[R.EC]===state.activeEc); else if(state.onlyNov) r=r.filter(x=>x[R.EC]!==0);
+  if(state.activeEc!=null) r=r.filter(x=>x[R.EC]===state.activeEc); else if(state.onlyNov) r=r.filter(x=>x[R.EC]!==0 || Math.round(Math.abs(x[R.DIF]||0)*100)!==0);
   const k=state.sortK,d=state.sortDir;
   r.sort((a,b)=>{ let av,bv;
     if(k==="p"){av=a[R.ANIO]*100+a[R.MES];bv=b[R.ANIO]*100+b[R.MES];}
@@ -559,7 +559,7 @@ function render(){
   }).join('');
   $('pgInfo').textContent=rows.length?`${fmtN.format(start+1)}–${fmtN.format(Math.min(start+per,rows.length))} de ${fmtN.format(rows.length)}`:"0 resultados";
   $('pgPrev').disabled=state.page<=1; $('pgNext').disabled=state.page>=pages;
-  const nNov=base.filter(r=>r[R.EC]!==0).length;
+  const nNov=base.filter(r=>r[R.EC]!==0 || Math.round(Math.abs(r[R.DIF]||0)*100)!==0).length;
   $('detailNote').innerHTML=state.activeEc!=null?`Filtrando por <b>${EST[state.activeEc].t}</b>. Toca de nuevo la tarjeta para quitar el filtro.`
     :(state.onlyNov?`Mostrando las <b>${fmtN.format(nNov)}</b> retenciones con novedades. Desmarca la casilla para ver las ${fmtN.format(base.length)} en total.`
       :`Mostrando las <b>${fmtN.format(base.length)}</b> retenciones.`);
