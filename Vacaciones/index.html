@@ -42,6 +42,10 @@
   td{padding:8px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
   td.raz{white-space:normal;max-width:260px}
   tr:hover td{background:#fbfcfc}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable:hover{color:var(--teal)}
+  th .ar{font-size:9px;opacity:.4;margin-left:4px}
+  th.on{color:var(--teal-deep)} th.on .ar{opacity:1;color:var(--teal)}
   .num{text-align:right;font-variant-numeric:tabular-nums}
   tfoot td{font-weight:700;background:#fbfcfc;border-top:2px solid var(--line2)}
   .empty{padding:34px;text-align:center;color:var(--faint);font-size:13.5px}
@@ -88,8 +92,14 @@
       <div class="tablewrap">
         <table>
           <thead><tr>
-            <th>#</th><th>Cédula</th><th>Nombre</th><th>Departamento</th><th>Cargo</th><th>Ingreso</th>
-            <th class="num">Días pend.</th><th class="num">Valor $</th>
+            <th>#</th>
+            <th class="sortable" data-k="ci">Cédula<span class="ar"></span></th>
+            <th class="sortable" data-k="nombre">Nombre<span class="ar"></span></th>
+            <th class="sortable" data-k="depto">Departamento<span class="ar"></span></th>
+            <th class="sortable" data-k="cargo">Cargo<span class="ar"></span></th>
+            <th class="sortable" data-k="fecha">Ingreso<span class="ar"></span></th>
+            <th class="sortable num" data-k="dias">Días pend.<span class="ar"></span></th>
+            <th class="sortable num" data-k="valor">Valor $<span class="ar"></span></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot id="tfoot"></tfoot>
@@ -116,7 +126,18 @@ const fmtD=n=>Number(n||0).toLocaleString('es-EC',{maximumFractionDigits:2});
 const norm=s=>String(s==null?'':s).toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[^a-z0-9]/g,'');
 const toNum=x=>{ const n=parseFloat(String(x==null?'':x).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
 let base=[];
+let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
+function parseFecha(f){ const m=String(f).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); if(!m)return 0; let y=+m[3]; if(y<100)y+=2000; return y*10000+(+m[2])*100+(+m[1]); }
+function sortRows(rows){
+  if(!sort.key) return rows;
+  const k=sort.key, d=sort.dir;
+  return rows.slice().sort((a,b)=>{
+    if(k==='dias'||k==='valor') return d*((a[k]||0)-(b[k]||0));
+    if(k==='fecha') return d*(parseFecha(a.fecha)-parseFecha(b.fecha));
+    return d*String(a[k]||'').localeCompare(String(b[k]||''),'es');
+  });
+}
 
 function fetchBase(){
   status('Cargando nómina desde el Sheet…');
@@ -167,17 +188,20 @@ function render(){
   $('kVal').textContent=fmt$(base.reduce((a,b)=>a+b.valor,0));
   $('kCat').textContent=[...new Set(base.map(r=>r.cargo))].length+' / '+[...new Set(base.map(r=>r.depto))].length;
   $('cnt').textContent=rows.length+' de '+base.length;
-  $('tbody').innerHTML=rows.map((r,i)=>`<tr>
+  const sorted=sortRows(rows);
+  $('tbody').innerHTML=sorted.map((r,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
     <td>${r.depto}</td><td>${r.cargo}</td><td>${r.fecha||'—'}</td>
     <td class="num">${fmtD(r.dias)}</td><td class="num">${fmt$(r.valor)}</td></tr>`).join('');
   $('tblEmpty').style.display=rows.length?'none':'block';
   $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmt$(rows.reduce((a,b)=>a+b.valor,0))}</td></tr>`;
+  document.querySelectorAll('th.sortable').forEach(th=>{ const on=th.dataset.k===sort.key; th.classList.toggle('on',on); const ar=th.querySelector('.ar'); if(ar) ar.textContent=on?(sort.dir<0?'▼':'▲'):'⇅'; });
 }
 ['fDep','fCar','fEst'].forEach(id=>$(id).onchange=render);
 $('fBuscar').oninput=render;
 $('btnReset').onclick=()=>{ $('fDep').value='';$('fCar').value='';$('fEst').value='';$('fBuscar').value=''; render(); };
 $('btnReload').onclick=fetchBase;
+document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=th.dataset.k; if(sort.key===k) sort.dir*=-1; else { sort.key=k; sort.dir=(k==='dias'||k==='valor')?-1:1; } render(); }; });
 fetchBase();
 </script>
 </body>
