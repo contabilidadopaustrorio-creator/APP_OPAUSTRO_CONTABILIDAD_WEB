@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conciliador de Retenciones SRI — OPAUSTRO</title>
+<style>
+  :root{
+    --bg:#f7f9fa; --ink:#16232b; --ink-soft:#4a5b66; --ink-faint:#7b8a93;
+    --card:#ffffff; --line:#e3e9ec; --line-strong:#cfd8dd;
+    --teal:#0f6d7a; --teal-deep:#0b5561; --teal-wash:#e7f1f2;
+    --ok:#15803d; --ok-wash:#e7f4ec;
+    --warn:#b45309; --warn-wash:#fbf0e4;
+    --crit:#b91c1c; --crit-wash:#fbe9e9;
+    --info:#1d4ed8; --info-wash:#e9eefb;
+    --shadow:0 1px 2px rgba(16,35,43,.04),0 2px 8px rgba(16,35,43,.05);
+    --mono:"Consolas","SF Mono",ui-monospace,monospace;
+    --sans:system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 72px}
+  .tnum{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+
+  header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;
+    padding-bottom:16px;border-bottom:2px solid var(--ink);margin-bottom:18px}
+  .brand h1{margin:0;font-size:25px;font-weight:700;letter-spacing:-.4px}
+  .brand p{margin:5px 0 0;color:var(--ink-soft);font-size:13.5px;max-width:70ch}
+  .stamp{text-align:right;font-size:12px;color:var(--ink-faint)}
+  .stamp b{display:block;font-size:13px;color:var(--teal-deep);font-weight:700}
+
+  /* uploader */
+  .banner{font-size:12.5px;color:var(--teal-deep);background:var(--teal-wash);border:1px solid #cfe3e5;
+    border-radius:10px;padding:10px 13px;margin-bottom:16px}
+  .drops{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+  .drop{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px}
+  .drop h3{margin:0 0 10px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .drop h3 .tag{font-size:10px;font-weight:700;letter-spacing:.4px;color:var(--teal-deep);background:var(--teal-wash);
+    border-radius:20px;padding:2px 8px}
+  .zone{border:2px dashed var(--line-strong);border-radius:10px;padding:22px 14px;text-align:center;cursor:pointer;
+    transition:border-color .12s,background .12s}
+  .zone:hover,.zone.over{border-color:var(--teal);background:var(--teal-wash)}
+  .zone .ic{font-size:26px}
+  .zone .big{font-weight:600;font-size:13.5px;margin-top:6px}
+  .zone .sm{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+  .zone.loaded{border-style:solid;border-color:var(--ok);background:var(--ok-wash)}
+  .zone .files{font-size:12px;color:var(--ok);font-weight:600;margin-top:6px;word-break:break-word}
+  .linkbtn{background:none;border:none;color:var(--teal);font:inherit;font-size:11.5px;text-decoration:underline;cursor:pointer;padding:0;margin-top:6px}
+
+  .config{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    padding:13px 15px;margin-bottom:16px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px}
+  .config .lab{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-faint);font-weight:700;
+    width:100%;margin-bottom:2px}
+  .fld{display:flex;flex-direction:column;gap:3px}
+  .fld label{font-size:11px;color:var(--ink-soft);font-weight:600}
+  .fld input{width:72px;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line-strong);border-radius:7px}
+  .spacer{flex:1}
+  .btn{font:inherit;font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;cursor:pointer;
+    border:1px solid var(--teal);background:var(--teal);color:#fff}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.ghost{background:#fff;color:var(--teal-deep)}
+  .btn:disabled{opacity:.5;cursor:default;filter:none}
+  .status{font-size:12.5px;color:var(--ink-soft);margin:2px 0 18px;min-height:18px}
+  .status.err{color:var(--crit);font-weight:600}
+
+  /* filters */
+  .filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+    background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);margin-bottom:16px}
+  .fgroup{display:flex;flex-direction:column;gap:3px}
+  .fgroup label{font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-faint);font-weight:600}
+  select,input[type=search]{font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line-strong);border-radius:8px;background:#fff;color:var(--ink);min-width:120px}
+  input[type=search]{min-width:210px}
+  select:focus,input:focus,button:focus-visible,th.sortable:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
+  .kpi.neg::before{background:var(--crit)} .kpi.pos::before{background:var(--ok)}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-faint);font-weight:600}
+  .kpi .big{font-size:27px;font-weight:700;margin-top:6px;letter-spacing:-.5px}
+  .kpi .sub{font-size:12px;color:var(--ink-soft);margin-top:3px}
+
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+  .st{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;box-shadow:var(--shadow);cursor:pointer;text-align:left;transition:transform .08s,box-shadow .12s}
+  .st:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(16,35,43,.09)}
+  .st[aria-pressed=false]{opacity:.5}
+  .st .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px}
+  .st .n{font-size:23px;font-weight:700;letter-spacing:-.5px}
+  .st .t{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .st .m{font-size:11.5px;color:var(--ink-faint);margin-top:3px}
+  .c0{--c:var(--ok)} .c1{--c:var(--warn)} .c2{--c:var(--crit)}
+  .st .dot{background:var(--c)} .st .n{color:var(--c)}
+
+  h2.sec{font-size:15px;font-weight:700;margin:26px 0 11px;letter-spacing:-.2px;display:flex;align-items:center;gap:9px}
+  h2.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+  .note{font-size:12.5px;color:var(--ink-soft);background:var(--teal-wash);border:1px solid #cfe3e5;border-radius:9px;padding:9px 12px;margin-bottom:14px}
+
+  .months{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  .months th,.months td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line)}
+  .months th:first-child,.months td:first-child{text-align:left}
+  .months thead th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);background:#fbfcfc;font-weight:600}
+  .months tbody tr:hover{background:#fbfcfc}
+  .months tfoot td{font-weight:700;border-top:2px solid var(--line-strong);background:#fbfcfc}
+  .bar{display:flex;height:8px;border-radius:5px;overflow:hidden;min-width:90px;background:var(--line)}
+  .bar i{display:block;height:100%}
+  .bar .b0{background:var(--ok)} .bar .b1{background:var(--warn)} .bar .b2{background:var(--crit)}
+
+  .tablecard{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+  .tablewrap{overflow-x:auto}
+  table.detail{font-size:13px;min-width:760px}
+  table.detail th,table.detail td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  table.detail th:nth-child(2),table.detail td:nth-child(2),
+  table.detail th:nth-child(3),table.detail td:nth-child(3){text-align:left}
+  table.detail thead th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-faint);background:#fbfcfc;font-weight:600;position:sticky;top:0;z-index:1}
+  th.sortable{cursor:pointer;user-select:none}
+  th.sortable .ar{opacity:.35;font-size:10px}
+  th.sortable.on .ar{opacity:1;color:var(--teal)}
+  table.detail tbody tr:hover{background:#fbfcfc}
+  td.raz{max-width:280px;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;line-height:1.6}
+  .p0{color:var(--ok);background:var(--ok-wash)} .p1{color:var(--warn);background:var(--warn-wash)} .p2{color:var(--crit);background:var(--crit-wash)}
+  .dif-neg{color:var(--crit);font-weight:600} .dif-pos{color:var(--ok);font-weight:600} .dif-zero{color:var(--ink-faint)}
+  .muted{color:var(--ink-faint)}
+  .pager{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 14px;background:#fbfcfc;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap}
+  .pager .pg{display:flex;gap:6px;align-items:center}
+  .pager button{font:inherit;font-size:12.5px;padding:5px 11px;border:1px solid var(--line-strong);background:#fff;border-radius:7px;cursor:pointer;color:var(--ink)}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-soft);cursor:pointer}
+  .empty{padding:40px;text-align:center;color:var(--ink-faint);font-size:13.5px}
+  footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink-faint);line-height:1.6}
+  #dashboard[hidden]{display:none}
+  @media (max-width:720px){.kpis{grid-template-columns:1fr}.strip{grid-template-columns:1fr}.drops{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Conciliador de Retenciones SRI</h1>
+      <p>Carga los comprobantes XML del SRI y tu reporte del sistema (PowerStreet). El cruce se hace <b>aquí en tu navegador</b> — nada se sube a internet. Cada retención de tu sistema se verifica contra el comprobante autorizado del SRI (RUC del emisor + número de retención).</p>
+    </div>
+    <div class="stamp"><b>100% local</b>funciona sin internet</div>
+  </header>
+
+  <div class="banner">✅ Base del cruce: <b>lo registrado en tu sistema</b>. Los comprobantes que el SRI tenga de más (que no estén en tu reporte) se ignoran. Estados: <b style="color:var(--ok)">Coincide</b> · <b style="color:var(--warn)">Diferencia de valor</b> · <b style="color:var(--crit)">No está en el SRI</b>.</div>
+
+  <div class="drops">
+    <div class="drop">
+      <h3>📥 Comprobantes del SRI <span class="tag">XML</span></h3>
+      <div class="zone" id="zoneSri">
+        <div class="ic">🧾</div>
+        <div class="big">Arrastra la carpeta (o los XML) aquí</div>
+        <div class="sm">o haz clic para seleccionar archivos XML</div>
+        <div class="files" id="filesSri"></div>
+      </div>
+      <button class="linkbtn" id="pickDir">Seleccionar una carpeta completa</button>
+      <input type="file" id="inSriFiles" accept=".xml" multiple hidden>
+      <input type="file" id="inSriDir" webkitdirectory hidden>
+    </div>
+    <div class="drop">
+      <h3>📊 Archivo del Sistema <span class="tag">XLSX o CSV</span></h3>
+      <div class="zone" id="zoneSys">
+        <div class="ic">📈</div>
+        <div class="big">Arrastra tu POWERSTREET aquí</div>
+        <div class="sm">.xlsx, .csv o .txt del sistema contable</div>
+        <div class="files" id="filesSys"></div>
+      </div>
+      <input type="file" id="inSys" accept=".xlsx,.csv,.txt" hidden>
+    </div>
+  </div>
+
+  <div class="config">
+    <div class="lab">Columnas del archivo del sistema (número de columna, empezando en 1) — se detectan solas al cargar</div>
+    <div class="fld"><label>RUC</label><input type="number" id="cRuc" value="2" min="1"></div>
+    <div class="fld"><label>Establec.</label><input type="number" id="cEstab" value="26" min="1"></div>
+    <div class="fld"><label>Punto emis.</label><input type="number" id="cPto" value="27" min="1"></div>
+    <div class="fld"><label>Secuencial</label><input type="number" id="cSec" value="28" min="1"></div>
+    <div class="fld"><label>Valor</label><input type="number" id="cValor" value="12" min="1"></div>
+    <div class="fld"><label>Razón (op.)</label><input type="number" id="cRazon" value="3" min="1"></div>
+    <div class="fld"><label>Mes (op.)</label><input type="number" id="cMes" value="30" min="1"></div>
+    <div class="fld"><label>Año (op.)</label><input type="number" id="cAnio" value="31" min="1"></div>
+    <div class="fld"><label>Tolerancia $</label><input type="number" id="cTol" value="0.01" step="0.01" min="0"></div>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="btnClear">Limpiar</button>
+    <button class="btn" id="btnCross" disabled>Cruzar documentos</button>
+  </div>
+  <div class="status" id="status">Carga los dos lados y pulsa «Cruzar documentos».</div>
+
+  <div id="dashboard" hidden>
+    <div class="filters">
+      <div class="fgroup"><label for="fAnio">Año</label><select id="fAnio"><option value="">Todos</option></select></div>
+      <div class="fgroup"><label for="fMes">Mes</label><select id="fMes"><option value="">Todos</option></select></div>
+      <div class="fgroup"><label for="fSearch">Buscar emisor / N° retención</label><input type="search" id="fSearch" placeholder="Ej. CODELITESA, 001-002-…, RUC"></div>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnReset">Limpiar filtros</button>
+      <button class="btn ghost" id="btnExport">Exportar CSV</button>
+      <button class="btn" id="btnExcel">Descargar Excel</button>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+    <div class="strip" id="strip"></div>
+
+    <h2 class="sec">Desglose por período</h2>
+    <div class="months tablewrap">
+      <table>
+        <thead><tr>
+          <th>Período</th><th>Sistema (n)</th><th>Coinciden</th><th>Diferencia</th><th>No en SRI</th>
+          <th>Valor sistema</th><th>Valor SRI</th><th style="min-width:110px">Composición</th>
+        </tr></thead>
+        <tbody id="monthBody"></tbody>
+        <tfoot id="monthFoot"></tfoot>
+      </table>
+    </div>
+
+    <h2 class="sec">Detalle de retenciones</h2>
+    <div class="note" id="detailNote"></div>
+    <div class="tablecard">
+      <div class="tablewrap">
+        <table class="detail">
+          <thead><tr>
+            <th>Estado</th>
+            <th class="sortable" data-k="0">Razón social <span class="ar">▲▼</span></th>
+            <th>N° Retención</th>
+            <th class="sortable" data-k="p">Período <span class="ar">▲▼</span></th>
+            <th class="sortable" data-k="5">Valor Sistema <span class="ar">▲▼</span></th>
+            <th class="sortable" data-k="6">Valor SRI <span class="ar">▲▼</span></th>
+            <th class="sortable on" data-k="7">Diferencia <span class="ar">▲▼</span></th>
+          </tr></thead>
+          <tbody id="detBody"></tbody>
+        </table>
+        <div class="empty" id="emptyMsg" hidden>No hay retenciones que coincidan con los filtros.</div>
+      </div>
+      <div class="pager">
+        <label class="toggle"><input type="checkbox" id="onlyNov" checked> Mostrar solo con novedades (diferencias y no encontradas en SRI)</label>
+        <div class="pg"><span id="pgInfo"></span><button id="pgPrev">‹ Anterior</button><button id="pgNext">Siguiente ›</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <b>Cómo funciona.</b> El cruce se hace por RUC del emisor + número de retención (establecimiento-punto-secuencial), quitando ceros a la izquierda.
+    <b style="color:var(--ok)">Coincide</b>: mismo valor (dentro de la tolerancia).
+    <b style="color:var(--warn)">Diferencia de valor</b>: existe en ambos pero el monto no cuadra.
+    <b style="color:var(--crit)">No está en el SRI</b>: registrada en el sistema, sin comprobante autorizado.
+    Todo se procesa localmente en tu navegador; ningún archivo sale de tu computadora.
+  </footer>
+</div>
+
+<script>
+/* ============ Lectura de archivos ============ */
+function u16(dv,o){return dv.getUint16(o,true);} function u32(dv,o){return dv.getUint32(o,true);}
+async function inflateRaw(bytes){
+  const ds=new DecompressionStream('deflate-raw');
+  const stream=new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+async function parseXlsx(arrayBuffer){
+  const dv=new DataView(arrayBuffer), u8=new Uint8Array(arrayBuffer);
+  let eocd=-1; for(let i=u8.length-22;i>=0;i--){ if(u32(dv,i)===0x06054b50){eocd=i;break;} }
+  if(eocd<0) throw new Error('El archivo no parece un .xlsx válido.');
+  const total=u16(dv,eocd+10); let off=u32(dv,eocd+16); const ent={};
+  for(let n=0;n<total;n++){
+    if(u32(dv,off)!==0x02014b50) break;
+    const method=u16(dv,off+10), compSize=u32(dv,off+20), nameLen=u16(dv,off+28), extraLen=u16(dv,off+30), commentLen=u16(dv,off+32), localOff=u32(dv,off+42);
+    const name=new TextDecoder().decode(u8.subarray(off+46,off+46+nameLen));
+    if(name==='xl/sharedStrings.xml' || /^xl\/worksheets\/sheet\d+\.xml$/.test(name)){
+      const lN=u16(dv,localOff+26), lE=u16(dv,localOff+28), start=localOff+30+lN+lE;
+      const comp=u8.subarray(start,start+compSize);
+      ent[name]=new TextDecoder('utf-8').decode(method===0?comp:await inflateRaw(comp));
+    }
+    off+=46+nameLen+extraLen+commentLen;
+  }
+  const ss=ent['xl/sharedStrings.xml']||''; const strings=[];
+  { const re=/<si>([\s\S]*?)<\/si>/g; let m; while((m=re.exec(ss))){
+    const t=[...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(x=>x[1]).join('');
+    strings.push(t.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&#10;/g,' ')); } }
+  const sheetKey=Object.keys(ent).filter(k=>/worksheets/.test(k)).sort()[0];
+  const sheet=ent[sheetKey]||''; const rows=[];
+  const colIdx=ref=>{const l=ref.replace(/[0-9]/g,'');let n=0;for(const c of l)n=n*26+(c.charCodeAt(0)-64);return n-1;};
+  const rowRe=/<row[^>]*>([\s\S]*?)<\/row>/g; let rm;
+  while((rm=rowRe.exec(sheet))){ const cells={};
+    const cRe=/<c r="([A-Z]+\d+)"(?:[^>]*?t="([^"]*)")?[^>]*>(?:<v>([\s\S]*?)<\/v>|<is><t[^>]*>([\s\S]*?)<\/t><\/is>)?<\/c>/g; let cm;
+    while((cm=cRe.exec(rm[1]))){ const ref=cm[1],t=cm[2],v=cm[3],isv=cm[4];
+      let val=isv!==undefined?isv:(v!==undefined?v:''); if(t==='s')val=strings[+v]; cells[colIdx(ref)]=val; }
+    rows.push(cells); }
+  return rows;
+}
+function parseCSV(text){
+  text=text.replace(/^﻿/,''); const firstLine=text.split(/\r?\n/)[0]||'';
+  const delim=(firstLine.split(';').length>firstLine.split(',').length)?';':',';
+  const rows=[]; let row=[],cur='',q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else { if(c==='"')q=true; else if(c===delim){row.push(cur);cur='';}
+      else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+      else if(c==='\r'){} else cur+=c; } }
+  if(cur.length||row.length){row.push(cur);rows.push(row);}
+  return rows.filter(r=>r.length>1||r[0]!=='').map(r=>{const o={};r.forEach((v,i)=>o[i]=v);return o;});
+}
+async function readSystemFile(file){
+  const nm=file.name.toLowerCase();
+  if(nm.endsWith('.xlsx')) return parseXlsx(await file.arrayBuffer());
+  return parseCSV(await file.text());
+}
+function parseSri(text){
+  const cd=text.match(/<comprobante>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/comprobante>/);
+  const comp=cd?cd[1]:text;
+  const g=t=>{const m=comp.match(new RegExp('<'+t+'>([\\s\\S]*?)<\\/'+t+'>'));return m?m[1].trim():'';};
+  const ruc=g('ruc'), razon=g('razonSocial'), estab=g('estab'), pto=g('ptoEmi'), sec=g('secuencial');
+  const periodo=g('periodoFiscal'), fecha=g('fechaEmision');
+  // La fecha de la retención = fechaEmisión (dd/mm/yyyy). Respaldo: periodoFiscal (MM/YYYY).
+  let anio=0,mes=0; const fp=fecha.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(fp){mes=+fp[2];anio=+fp[3];} else { const mp=periodo.match(/(\d{1,2})\/(\d{4})/); if(mp){mes=+mp[1];anio=+mp[2];} }
+  const val=[...comp.matchAll(/<valorRetenido>([\s\S]*?)<\/valorRetenido>/g)].reduce((a,m)=>a+(parseFloat(m[1])||0),0);
+  if(!ruc||!sec) return null;
+  return {key:ruc+'|'+sl(estab)+'-'+sl(pto)+'-'+sl(sec), ruc, razon, numRet:estab+'-'+pto+'-'+sec, anio, mes, valorSRI:+val.toFixed(2)};
+}
+function sl(x){return String(x).replace(/^0+(?=\d)/,'').trim();}
+function num(x){ let s=String(x==null?'':x).trim(); if(!s) return 0;
+  if(s.includes(',')&&s.includes('.')) s=s.replace(/\./g,'').replace(',','.');
+  else if(s.includes(',')) s=s.replace(',','.');
+  const n=parseFloat(s); return isNaN(n)?0:n; }
+
+/* ============ Recolección de archivos (drag/drop + folder) ============ */
+let sriFiles=[], sysRows=null, sysFileName='';
+async function entryFiles(entry, acc){
+  if(entry.isFile){ await new Promise(res=>entry.file(f=>{ if(f.name.toLowerCase().endsWith('.xml'))acc.push(f); res(); })); }
+  else if(entry.isDirectory){ const rd=entry.createReader();
+    await new Promise(res=>{ const readBatch=()=>rd.readEntries(async es=>{ if(!es.length){res();return;} for(const e of es) await entryFiles(e,acc); readBatch(); }); readBatch(); }); }
+}
+async function filesFromDrop(dt){
+  const acc=[]; const items=[...dt.items].map(it=>it.webkitGetAsEntry&&it.webkitGetAsEntry());
+  if(items.some(Boolean)){ for(const e of items){ if(e) await entryFiles(e,acc); } }
+  else { for(const f of dt.files){ if(f.name.toLowerCase().endsWith('.xml')) acc.push(f); } }
+  return acc;
+}
+const $=id=>document.getElementById(id);
+function setSri(files){ sriFiles=files; $('filesSri').textContent=files.length?(files.length+' archivos XML cargados'):''; $('zoneSri').classList.toggle('loaded',!!files.length); refreshCross(); }
+function refreshCross(){ $('btnCross').disabled=!(sriFiles.length && sysRows); }
+function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
+
+async function loadSystem(file){
+  try{ status('Leyendo '+file.name+'…'); sysRows=await readSystemFile(file); sysFileName=file.name;
+    $('filesSys').textContent=file.name+' — '+(sysRows.length-1)+' filas'; $('zoneSys').classList.add('loaded');
+    autodetect(sysRows[0]||{}); status('Archivo del sistema cargado. Ahora carga los XML del SRI (o pulsa «Cruzar»).'); refreshCross();
+  }catch(e){ status('No se pudo leer el archivo: '+e.message,true); }
+}
+function autodetect(header){
+  const norm=h=>String(h==null?'':h).replace(/<[^>]+>/g,'').toUpperCase().replace(/[^A-Z]/g,'');
+  const find=pred=>{ for(const k in header){ if(pred(norm(header[k]))) return +k+1; } return null; };
+  const set=(id,v)=>{ if(v) $(id).value=v; };
+  set('cRuc',find(n=>n==='RUC'));
+  set('cRazon',find(n=>n.startsWith('RAZON')));
+  set('cValor',find(n=>n==='VALOR'));
+  set('cEstab',find(n=>n.includes('ESTABLE')));
+  set('cPto',find(n=>n.includes('EMISION')&&n.includes('RETENCION')));
+  set('cSec',find(n=>n.includes('NUMERO')&&n.includes('RETENCION')));
+  set('cMes',find(n=>n==='MES'));
+  set('cAnio',find(n=>n==='AO'||n==='ANO'||n==='ANIO'||n==='ANO'));
+}
+
+/* ============ Cruce ============ */
+function reconcile(){
+  const c={ruc:+$('cRuc').value-1,estab:+$('cEstab').value-1,pto:+$('cPto').value-1,sec:+$('cSec').value-1,valor:+$('cValor').value-1,razon:+$('cRazon').value-1,mes:+$('cMes').value-1,anio:+$('cAnio').value-1};
+  const tol=Math.abs(num($('cTol').value))||0.01;
+  // columna "Fecha Ingreso" (respaldo para deducir mes/año desde PowerStreet)
+  const hdr=sysRows[0]||{}; const nrm=h=>String(h==null?'':h).replace(/<[^>]+>/g,'').toUpperCase().replace(/[^A-Z]/g,'');
+  let cFecha=-1; for(const k in hdr){ const nn=nrm(hdr[k]); if(nn.includes('FECHA')&&nn.includes('INGRESO')){cFecha=+k;break;} }
+  const sysMap=new Map();
+  for(const r of sysRows.slice(1)){
+    const ruc=String(r[c.ruc]||'').trim(); const secv=r[c.sec];
+    if(!ruc && (secv==null||secv==='')) continue;
+    const key=ruc+'|'+sl(r[c.estab]||'')+'-'+sl(r[c.pto]||'')+'-'+sl(r[c.sec]||'');
+    const rec=sysMap.get(key)||{key,ruc,razon:String(r[c.razon]||'').trim(),numRet:sl(r[c.estab]||'')+'-'+sl(r[c.pto]||'')+'-'+sl(r[c.sec]||''),valorSis:0,anio:0,mes:0};
+    rec.valorSis=+(rec.valorSis+num(r[c.valor])).toFixed(2);
+    if(!rec.anio){ const a=parseInt(r[c.anio]); if(a>1900&&a<3000) rec.anio=a; }
+    if(!rec.mes){ const m=parseInt(r[c.mes]); if(m>=1&&m<=12) rec.mes=m; }
+    if((!rec.mes||!rec.anio) && cFecha>=0){ const dm=String(r[cFecha]||'').match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if(dm){ if(!rec.mes)rec.mes=+dm[2]; if(!rec.anio)rec.anio=+dm[3]; } }
+    sysMap.set(key,rec);
+  }
+  const sriMap=new Map(); let bad=0;
+  for(const f of window._sriParsed){ if(!f){bad++;continue;} const a=sriMap.get(f.key)||{...f,valorSRI:0}; a.valorSRI=+(a.valorSRI+f.valorSRI).toFixed(2); sriMap.set(f.key,a); }
+  const payload=[]; let extra=0;
+  for(const [k,s] of sysMap){ const x=sriMap.get(k);
+    const vs=s.valorSis, vsri=x?x.valorSRI:null;
+    let ec; if(x) ec=Math.abs((vs||0)-(vsri||0))<=tol?0:1; else ec=2;
+    const anio=(x&&x.anio)||s.anio||0, mes=(x&&x.mes)||s.mes||0;
+    payload.push([ s.razon||(x?x.razon:'')||'', s.ruc, s.numRet, anio, mes, vs, vsri, +(((vs||0)-(vsri||0))).toFixed(2), ec ]);
+  }
+  for(const k of sriMap.keys()) if(!sysMap.has(k)) extra++;
+  payload.sort((a,b)=>(a[3]-b[3])||(a[4]-b[4])||(b[8]-a[8])||(Math.abs(b[7])-Math.abs(a[7])));
+  return {payload,extra,bad};
+}
+async function cross(){
+  try{
+    $('btnCross').disabled=true;
+    status('Leyendo '+sriFiles.length+' comprobantes del SRI… 0%');
+    const parsed=new Array(sriFiles.length); const N=sriFiles.length; let done=0;
+    const CH=200;
+    for(let i=0;i<N;i+=CH){
+      const batch=sriFiles.slice(i,i+CH);
+      const texts=await Promise.all(batch.map(f=>f.text()));
+      texts.forEach((t,j)=>{ parsed[i+j]=parseSri(t); });
+      done+=batch.length; status('Leyendo comprobantes del SRI… '+Math.round(done/N*100)+'%');
+      await new Promise(r=>setTimeout(r,0));
+    }
+    window._sriParsed=parsed;
+    status('Cruzando…');
+    const {payload,extra,bad}=reconcile();
+    if(!payload.length){ status('No se encontraron retenciones en el archivo del sistema. Revisa los números de columna.',true); $('btnCross').disabled=false; return; }
+    initDashboard(payload);
+    const c=payload.reduce((a,r)=>{a[r[8]]++;return a;},[0,0,0]);
+    status(`Listo · ${payload.length} retenciones del sistema · ✅ ${c[0]} coinciden · 🟠 ${c[1]} con diferencia · 🔴 ${c[2]} no están en el SRI · (${extra} comprobantes del SRI ignorados por no estar en el sistema${bad?'; '+bad+' XML no legibles':''})`);
+    $('dashboard').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){ status('Error al cruzar: '+e.message,true); }
+  finally{ $('btnCross').disabled=false; }
+}
+
+/* ============ Eventos de carga ============ */
+function wireZone(zone,onFiles,isSystem){
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.add('over');}));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();zone.classList.remove('over');}));
+  zone.addEventListener('drop',async e=>{
+    if(isSystem){ const f=e.dataTransfer.files[0]; if(f) loadSystem(f); }
+    else { status('Leyendo carpeta…'); const files=await filesFromDrop(e.dataTransfer); setSri(files); status(files.length?files.length+' XML cargados.':'No se hallaron XML.'); }
+  });
+}
+wireZone($('zoneSri'),setSri,false); wireZone($('zoneSys'),null,true);
+$('zoneSri').onclick=()=>$('inSriFiles').click();
+$('pickDir').onclick=e=>{e.stopPropagation();$('inSriDir').click();};
+$('inSriFiles').onchange=e=>setSri([...e.target.files].filter(f=>f.name.toLowerCase().endsWith('.xml')));
+$('inSriDir').onchange=e=>setSri([...e.target.files].filter(f=>f.name.toLowerCase().endsWith('.xml')));
+$('zoneSys').onclick=()=>$('inSys').click();
+$('inSys').onchange=e=>{ if(e.target.files[0]) loadSystem(e.target.files[0]); };
+$('btnCross').onclick=cross;
+$('btnClear').onclick=()=>{ sriFiles=[];sysRows=null;window._sriParsed=null;
+  $('filesSri').textContent='';$('filesSys').textContent='';$('zoneSri').classList.remove('loaded');$('zoneSys').classList.remove('loaded');
+  $('inSriFiles').value='';$('inSriDir').value='';$('inSys').value='';$('dashboard').hidden=true;refreshCross();
+  status('Carga los dos lados y pulsa «Cruzar documentos».'); };
+
+/* ============ Escritura de Excel (.xlsx sin librerías) ============ */
+const _CRC=(()=>{let t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=_CRC[(c^u8[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+const _enc=s=>new TextEncoder().encode(s);
+function zipStore(files){
+  const chunks=[],central=[]; let offset=0; const push=u=>{chunks.push(u);offset+=u.length;};
+  for(const f of files){ const nameB=_enc(f.name),data=f.data,crc=crc32(data);
+    const lh=new Uint8Array(30+nameB.length),dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint32(14,crc,true);
+    dv.setUint32(18,data.length,true);dv.setUint32(22,data.length,true);dv.setUint16(26,nameB.length,true);lh.set(nameB,30);
+    const lho=offset; push(lh); push(data);
+    const ch=new Uint8Array(46+nameB.length),cv=new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint32(16,crc,true);
+    cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,nameB.length,true);
+    cv.setUint32(42,lho,true);ch.set(nameB,46);central.push(ch); }
+  const cdStart=offset; let cdSize=0; central.forEach(c=>{push(c);cdSize+=c.length;});
+  const eo=new Uint8Array(22),ev=new DataView(eo.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true);ev.setUint32(16,cdStart,true);push(eo);
+  const out=new Uint8Array(offset);let p=0;for(const c of chunks){out.set(c,p);p+=c.length;}return out;
+}
+const _xesc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function _colL(i){let s='';i++;while(i){let m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=(i-m-1)/26|0;}return s;}
+const _CT='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>';
+const _RELS='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+const _WB='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Conciliacion" sheetId="1" r:id="rId1"/></sheets></workbook>';
+const _WBR='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+const _STY='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;$&quot;#,##0.00"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF0F6D7A"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+function buildSheetXml(rows){
+  const cols=[{h:'Estado',t:'t'},{h:'Razón social (emisor)',t:'t'},{h:'RUC emisor',t:'t'},{h:'N° Retención',t:'t'},{h:'Año',t:'i'},{h:'Mes',t:'i'},{h:'Valor Sistema',t:'m'},{h:'Valor SRI',t:'m'},{h:'Diferencia',t:'m'}];
+  let s='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">';
+  s+='<cols><col min="1" max="1" width="20"/><col min="2" max="2" width="42"/><col min="3" max="4" width="16"/><col min="5" max="6" width="7"/><col min="7" max="9" width="14"/></cols><sheetData>';
+  s+='<row r="1">'+cols.map((c,i)=>`<c r="${_colL(i)}1" t="inlineStr" s="1"><is><t xml:space="preserve">${_xesc(c.h)}</t></is></c>`).join('')+'</row>';
+  rows.forEach((r,ri)=>{ const rn=ri+2; s+=`<row r="${rn}">`;
+    r.forEach((val,ci)=>{ const ty=cols[ci].t,ref=_colL(ci)+rn;
+      if(val==null||val==='')return;
+      if(ty==='m') s+=`<c r="${ref}" s="2"><v>${val}</v></c>`;
+      else if(ty==='i') s+=`<c r="${ref}"><v>${val}</v></c>`;
+      else s+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${_xesc(val)}</t></is></c>`; });
+    s+='</row>'; });
+  s+='</sheetData>'+`<autoFilter ref="A1:${_colL(cols.length-1)}${rows.length+1}"/>`+'</worksheet>'; return s;
+}
+function makeXlsx(rows){
+  return zipStore([
+    {name:'[Content_Types].xml',data:_enc(_CT)},{name:'_rels/.rels',data:_enc(_RELS)},
+    {name:'xl/workbook.xml',data:_enc(_WB)},{name:'xl/_rels/workbook.xml.rels',data:_enc(_WBR)},
+    {name:'xl/styles.xml',data:_enc(_STY)},{name:'xl/worksheets/sheet1.xml',data:_enc(buildSheetXml(rows))},
+  ]);
+}
+
+/* ============ Tablero (render) ============ */
+const R={RAZ:0,RUC:1,NUM:2,ANIO:3,MES:4,VS:5,VSRI:6,DIF:7,EC:8};
+const EST=[{t:"Coincide",cls:"c0",p:"p0"},{t:"Diferencia de valor",cls:"c1",p:"p1"},{t:"No está en el SRI",cls:"c2",p:"p2"}];
+const MESNOM=["—","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const fmt=new Intl.NumberFormat("es-EC",{style:"currency",currency:"USD",minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtN=new Intl.NumberFormat("es-EC");
+const money=v=>v==null?"—":fmt.format(v);
+const periodStr=r=>r[R.ANIO]?(r[R.MES]?r[R.ANIO]+"-"+String(r[R.MES]).padStart(2,"0"):""+r[R.ANIO]):"—";
+let DATA=[], state={anio:"",mes:"",q:"",onlyNov:true,page:1,per:40,sortK:"7",sortDir:-1,activeEc:null}, wired=false;
+
+function baseFilter(){ const q=state.q.trim().toLowerCase();
+  return DATA.filter(r=>{ if(state.anio&&r[R.ANIO]!=state.anio)return false; if(state.mes&&r[R.MES]!=state.mes)return false;
+    if(q){ if(!(r[R.RAZ]+" "+r[R.RUC]+" "+r[R.NUM]).toLowerCase().includes(q))return false; } return true; }); }
+function renderKpis(rows){
+  const totSRI=rows.reduce((a,r)=>a+(r[R.VSRI]||0),0), totSYS=rows.reduce((a,r)=>a+(r[R.VS]||0),0), dif=totSYS-totSRI;
+  const cards=[
+    {lab:"Valor retenido — Sistema",big:money(totSYS),sub:fmtN.format(rows.length)+" retenciones",cls:""},
+    {lab:"Valor retenido — SRI",big:money(totSRI),sub:fmtN.format(rows.filter(r=>r[R.EC]!==2).length)+" con comprobante",cls:""},
+    {lab:"Diferencia (Sistema − SRI)",big:money(dif),sub:Math.abs(dif)<0.01?"Cuadrado":(dif>0?"Sistema registra de más":"Sistema registra de menos"),cls:Math.abs(dif)<0.01?"pos":"neg"},
+  ];
+  $('kpis').innerHTML=cards.map(c=>`<div class="kpi ${c.cls}"><div class="lab">${c.lab}</div><div class="big tnum">${c.big}</div><div class="sub">${c.sub}</div></div>`).join('');
+}
+function renderStrip(rows){
+  const counts=[0,0,0],vals=[0,0,0]; rows.forEach(r=>{counts[r[R.EC]]++;vals[r[R.EC]]+=(r[R.VS]||0);});
+  const tot=rows.length||1;
+  $('strip').innerHTML=EST.map((e,i)=>{ const active=state.activeEc==null||state.activeEc===i;
+    const meta=i===0?(counts[i]/tot*100).toFixed(1)+"% del total":money(vals[i]);
+    return `<button class="st ${e.cls}" data-ec="${i}" aria-pressed="${active}"><div class="t"><span class="dot"></span>${e.t}</div><div class="n tnum">${fmtN.format(counts[i])}</div><div class="m">${meta}</div></button>`;
+  }).join('');
+  $('strip').querySelectorAll('.st').forEach(b=>b.onclick=()=>{ const ec=+b.dataset.ec;
+    state.activeEc=state.activeEc===ec?null:ec; if(state.activeEc!=null){state.onlyNov=false;$('onlyNov').checked=false;} state.page=1;render(); });
+}
+function renderMonths(rows){
+  const groups={}; rows.forEach(r=>{(groups[periodStr(r)]=groups[periodStr(r)]||[]).push(r);});
+  const keys=Object.keys(groups).sort(); let html=''; const tot=[0,0,0,0]; let tS=0,tR=0;
+  keys.forEach(key=>{ const g=groups[key]; const c=[0,0,0]; let vS=0,vR=0;
+    g.forEach(r=>{c[r[R.EC]]++;vS+=r[R.VS]||0;vR+=r[R.VSRI]||0;}); const ns=g.length;
+    tot[0]+=ns;tot[1]+=c[0];tot[2]+=c[1];tot[3]+=c[2];tS+=vS;tR+=vR;
+    const bt=ns||1;
+    const bar=`<div class="bar"><i class="b0" style="width:${c[0]/bt*100}%"></i><i class="b1" style="width:${c[1]/bt*100}%"></i><i class="b2" style="width:${c[2]/bt*100}%"></i></div>`;
+    const lbl=key.includes("-")?MESNOM[+key.split("-")[1]]+" "+key.split("-")[0]:key;
+    html+=`<tr><td>${lbl}</td><td class="tnum">${ns}</td><td class="tnum" style="color:var(--ok)">${c[0]}</td><td class="tnum" style="color:var(--warn)">${c[1]||"·"}</td><td class="tnum" style="color:var(--crit);font-weight:${c[2]?700:400}">${c[2]||"·"}</td><td class="tnum">${money(vS)}</td><td class="tnum">${money(vR)}</td><td>${bar}</td></tr>`;
+  });
+  $('monthBody').innerHTML=html;
+  $('monthFoot').innerHTML=`<tr><td>Total</td><td class="tnum">${tot[0]}</td><td class="tnum">${tot[1]}</td><td class="tnum">${tot[2]}</td><td class="tnum">${tot[3]}</td><td class="tnum">${money(tS)}</td><td class="tnum">${money(tR)}</td><td></td></tr>`;
+}
+function detailRows(rows){ let r=rows.slice();
+  if(state.activeEc!=null) r=r.filter(x=>x[R.EC]===state.activeEc); else if(state.onlyNov) r=r.filter(x=>x[R.EC]!==0);
+  const k=state.sortK,d=state.sortDir;
+  r.sort((a,b)=>{ let av,bv;
+    if(k==="p"){av=a[R.ANIO]*100+a[R.MES];bv=b[R.ANIO]*100+b[R.MES];}
+    else if(k==="0"){return d*String(a[R.RAZ]).localeCompare(String(b[R.RAZ]));}
+    else if(k==="7"){av=Math.abs(a[R.DIF]);bv=Math.abs(b[R.DIF]);}
+    else {av=a[+k]??-Infinity;bv=b[+k]??-Infinity;}
+    return d*(av-bv); });
+  return r; }
+function render(){
+  const base=baseFilter(); renderKpis(base); renderStrip(base); renderMonths(base);
+  const rows=detailRows(base); const per=state.per, pages=Math.max(1,Math.ceil(rows.length/per));
+  if(state.page>pages)state.page=pages; const start=(state.page-1)*per, slice=rows.slice(start,start+per);
+  $('emptyMsg').hidden=rows.length>0;
+  $('detBody').innerHTML=slice.map(r=>{ const e=EST[r[R.EC]],dif=r[R.DIF];
+    const dc=Math.abs(dif)<0.005?"dif-zero":(dif<0?"dif-neg":"dif-pos"); const dt=(dif>0?"+":"")+fmt.format(dif);
+    return `<tr><td><span class="pill ${e.p}">${e.t}</span></td><td class="raz" title="${r[R.RAZ]} · RUC ${r[R.RUC]}">${r[R.RAZ]}</td><td class="tnum muted">${r[R.NUM]}</td><td class="muted">${periodStr(r)}</td><td class="tnum">${money(r[R.VS])}</td><td class="tnum">${money(r[R.VSRI])}</td><td class="tnum ${dc}">${dt}</td></tr>`;
+  }).join('');
+  $('pgInfo').textContent=rows.length?`${fmtN.format(start+1)}–${fmtN.format(Math.min(start+per,rows.length))} de ${fmtN.format(rows.length)}`:"0 resultados";
+  $('pgPrev').disabled=state.page<=1; $('pgNext').disabled=state.page>=pages;
+  const nNov=base.filter(r=>r[R.EC]!==0).length;
+  $('detailNote').innerHTML=state.activeEc!=null?`Filtrando por <b>${EST[state.activeEc].t}</b>. Toca de nuevo la tarjeta para quitar el filtro.`
+    :(state.onlyNov?`Mostrando las <b>${fmtN.format(nNov)}</b> retenciones con novedades. Desmarca la casilla para ver las ${fmtN.format(base.length)} en total.`
+      :`Mostrando las <b>${fmtN.format(base.length)}</b> retenciones.`);
+  document.querySelectorAll('th.sortable').forEach(th=>{ th.classList.toggle('on',th.dataset.k===state.sortK);
+    const ar=th.querySelector('.ar'); if(ar)ar.textContent=th.dataset.k===state.sortK?(state.sortDir<0?"▼":"▲"):"▲▼"; });
+}
+function initDashboard(payload){
+  DATA=payload; state={anio:"",mes:"",q:"",onlyNov:true,page:1,per:40,sortK:"7",sortDir:-1,activeEc:null};
+  const anios=[...new Set(DATA.map(r=>r[R.ANIO]).filter(Boolean))].sort();
+  const meses=[...new Set(DATA.map(r=>r[R.MES]).filter(Boolean))].sort((a,b)=>a-b);
+  $('fAnio').innerHTML='<option value="">Todos</option>'+anios.map(a=>`<option value="${a}">${a}</option>`).join('');
+  $('fMes').innerHTML='<option value="">Todos</option>'+meses.map(m=>`<option value="${m}">${MESNOM[m]}</option>`).join('');
+  $('fSearch').value=''; $('onlyNov').checked=true;
+  if(!wired){
+    $('fAnio').onchange=e=>{state.anio=e.target.value;state.page=1;render();};
+    $('fMes').onchange=e=>{state.mes=e.target.value;state.page=1;render();};
+    let qt; $('fSearch').oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{state.q=e.target.value;state.page=1;render();},180);};
+    $('onlyNov').onchange=e=>{state.onlyNov=e.target.checked;if(e.target.checked)state.activeEc=null;state.page=1;render();};
+    $('pgPrev').onclick=()=>{if(state.page>1){state.page--;render();}};
+    $('pgNext').onclick=()=>{state.page++;render();};
+    $('btnReset').onclick=()=>{state.anio="";state.mes="";state.q="";state.onlyNov=true;state.activeEc=null;state.page=1;
+      $('fAnio').value="";$('fMes').value="";$('fSearch').value="";$('onlyNov').checked=true;render();};
+    document.querySelectorAll('th.sortable').forEach(th=>{ th.tabIndex=0;
+      const act=()=>{const k=th.dataset.k; if(state.sortK===k)state.sortDir*=-1; else{state.sortK=k;state.sortDir=(k==="0")?1:-1;} state.page=1;render();};
+      th.onclick=act; th.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();act();}}; });
+    $('btnExport').onclick=()=>{ const rows=detailRows(baseFilter());
+      const head=["Estado","Razon Social","RUC","N Retencion","Anio","Mes","Valor Sistema","Valor SRI","Diferencia"];
+      const lines=[head.join(";")];
+      rows.forEach(r=>lines.push([EST[r[R.EC]].t,`"${String(r[R.RAZ]).replace(/"/g,'""')}"`,r[R.RUC],r[R.NUM],r[R.ANIO]||"",r[R.MES]||"",r[R.VS]??"",r[R.VSRI]??"",r[R.DIF]].join(";")));
+      const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="conciliacion_retenciones.csv";a.click();URL.revokeObjectURL(a.href); };
+    $('btnExcel').onclick=()=>{
+      const rows=detailRows(baseFilter()).map(r=>[EST[r[R.EC]].t,r[R.RAZ],r[R.RUC],r[R.NUM],r[R.ANIO]||'',r[R.MES]||'',r[R.VS],r[R.VSRI],r[R.DIF]]);
+      const bytes=makeXlsx(rows);
+      const blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Conciliacion_Retenciones.xlsx";a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+    wired=true;
+  }
+  $('dashboard').hidden=false; render();
+}
+</script>
+</body>
+</html>

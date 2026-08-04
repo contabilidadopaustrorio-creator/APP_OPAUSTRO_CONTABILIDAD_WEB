@@ -2617,6 +2617,20 @@
         path: "../Gastos/index.html?embed=1",
         embed: true
       },
+      ConciliadorSRI: {
+        label: "Conciliador SRI",
+        symbol: "report",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../ConciliadorSRI/index.html?embed=1",
+        embed: true
+      },
+      ConciliadorRetenciones: {
+        label: "Conciliador de retenciones",
+        symbol: "report",
+        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
+        path: "../ConciliadorRetenciones/index.html?embed=1",
+        embed: true
+      },
       Ventas: {
         label: "Ventas",
         icon: "../Recuros_imagenes/resumen.png?v=1.0.0",
@@ -2789,7 +2803,7 @@
         label: "Contabilidad",
         icon: "&#128202;",
         iconPath: "../Recuros_imagenes/reporte.png?v=1.0.0",
-        modules: ["ControlGastos"]
+        modules: ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones"]
       }
     ];
 
@@ -3071,9 +3085,10 @@
 
     function modulesForRole(role) {
       const normalized = normalizeRoleName(role);
-      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return [...ACCESS_CONTROL_MODULES, "ControlGastos"];
-      if (normalized === "CONTADOR") return ["ControlGastos"];
-      if (normalized === "ASISTENTE_CONTABLE" || normalized === "ASISTENTE CONTABLE" || normalized === "ASISTENTECONTABLE") return ["ControlGastos"];
+      const CONTAB = ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones"];
+      if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return [...ACCESS_CONTROL_MODULES, ...CONTAB];
+      if (normalized === "CONTADOR") return CONTAB;
+      if (normalized === "ASISTENTE_CONTABLE" || normalized === "ASISTENTE CONTABLE" || normalized === "ASISTENTECONTABLE") return CONTAB;
       return null;
     }
 

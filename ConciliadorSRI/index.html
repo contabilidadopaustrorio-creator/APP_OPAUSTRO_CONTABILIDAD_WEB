@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conciliador SRI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f6f9;color:#1a1a1a;font-size:14px}
+.wrap{padding:1.5rem;max-width:1100px;margin:0 auto}
+h1{font-size:22px;font-weight:600;color:#1a1a1a;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.sub{font-size:13px;color:#666;margin-bottom:1.25rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.card{background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:1rem 1.25rem}
+.card h2{font-size:14px;font-weight:600;color:#333;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.dropzone{border:2px dashed #c5ccd6;border-radius:8px;padding:1.25rem;text-align:center;cursor:pointer;transition:background 0.15s,border-color 0.15s;position:relative;min-height:95px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.dropzone:hover,.dropzone.over{background:#f0f5ff;border-color:#4a7cf6}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dz-icon{font-size:28px;margin-bottom:2px}
+.dz-title{font-size:13px;font-weight:600;color:#333}
+.dz-sub{font-size:12px;color:#888}
+.info-box{background:#e8f0fe;border:1px solid #b3c6f7;border-radius:8px;padding:0.65rem 1rem;font-size:12px;color:#2a56c6;margin-bottom:14px;line-height:1.6}
+.stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:14px 0}
+.stat{background:#f8f9fb;border:1px solid #e8e8e8;border-radius:8px;padding:0.75rem 1rem}
+.stat .lbl{font-size:11px;color:#777;margin-bottom:3px}
+.stat .val{font-size:22px;font-weight:700}
+.stat .amt{font-size:11px;color:#aaa;margin-top:2px}
+.val-ok{color:#16a34a}.val-miss{color:#dc2626}.val-diff{color:#d97706}.val-extra{color:#2563eb}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;border:1px solid #d0d5dd;background:#fff;cursor:pointer;font-size:13px;color:#333;font-family:inherit;transition:background 0.12s}
+.btn:hover{background:#f3f4f6}
+.btn:active{transform:scale(0.98)}
+.btn-primary{background:#1a56db;color:#fff;border-color:#1a56db}
+.btn-primary:hover{background:#1648c0}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-danger{border-color:#fca5a5;color:#dc2626}
+.tabs{display:flex;border-bottom:1px solid #e5e7eb;margin-bottom:12px;overflow-x:auto;gap:0}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;border:none;border-bottom:2px solid transparent;color:#666;background:none;font-family:inherit;white-space:nowrap;transition:color 0.12s}
+.tab:hover{color:#1a56db}
+.tab.active{color:#1a56db;border-bottom-color:#1a56db;font-weight:600}
+.tbl-wrap{overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f8f9fb;font-weight:600;text-align:left;padding:7px 10px;color:#555;border-bottom:1px solid #e5e7eb;white-space:nowrap}
+td{padding:6px 10px;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.st-ok{color:#16a34a;font-weight:600}
+.st-miss{color:#dc2626;font-weight:600}
+.st-diff{color:#d97706;font-weight:600}
+.st-extra{color:#2563eb;font-weight:600}
+.file-list{font-size:11px;color:#666;margin-top:7px;max-height:60px;overflow-y:auto;line-height:1.7}
+.file-list div{padding:1px 0;border-bottom:1px dashed #f0f0f0}
+.file-list div:last-child{border-bottom:none}
+.chip{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500;background:#f0f0f0;color:#555;display:inline-block}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.search-inp{width:260px;font-size:12px;padding:6px 12px;border-radius:7px;border:1px solid #d0d5dd;font-family:inherit;outline:none}
+.search-inp:focus{border-color:#1a56db;box-shadow:0 0 0 2px rgba(26,86,219,0.1)}
+.empty{text-align:center;padding:3rem;color:#aaa;font-size:13px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:9px 20px;border-radius:99px;font-size:13px;display:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,0.2);white-space:nowrap}
+.mono{font-family:'Courier New',monospace;font-size:11px}
+.num{text-align:right}
+.cfg-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0}
+.cfg-row label{font-size:12px;color:#555}
+.cfg-row input{width:72px;font-size:12px;padding:5px 8px;border-radius:6px;border:1px solid #d0d5dd;font-family:inherit}
+.section-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px}
+.badge-sri{background:#dbeafe;color:#1d4ed8;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="wrap">
+  <h1>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    Conciliador SRI
+  </h1>
+  <p class="sub">Cruce de comprobantes del SRI vs. sistema contable — RUC + número de documento</p>
+
+  <div class="info-box">
+    <strong>✅ Acepta XMLs del SRI y también los TXT exportados del portal SRI</strong>
+    &nbsp;(formato tabulado con columnas RUC_EMISOR, SERIE_COMPROBANTE, IMPORTE_TOTAL, etc.)
+    <br>
+    <span style="color:#555">Lado derecho: tu Excel/CSV del sistema contable. Ajusta las columnas si tu archivo tiene diferente orden.</span>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a56db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path></svg>
+        Comprobantes SRI
+        <span class="badge-sri">XML o TXT</span>
+      </h2>
+      <div class="dropzone" id="dz-xml">
+        <input type="file" id="inp-xml" accept=".xml,.txt,.tsv" multiple>
+        <div class="dz-icon">📄</div>
+        <div class="dz-title">Arrastra o haz clic para seleccionar</div>
+        <div class="dz-sub">XMLs del SRI — o TXT exportados del portal (múltiples a la vez)</div>
+      </div>
+      <div class="file-list" id="xml-list"></div>
+    </div>
+    <div class="card">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+        Archivo del Sistema
+      </h2>
+      <div class="dropzone" id="dz-sys">
+        <input type="file" id="inp-sys" accept=".xlsx,.xls,.csv,.txt,.tsv">
+        <div class="dz-icon">📊</div>
+        <div class="dz-title">Arrastra o haz clic para seleccionar</div>
+        <div class="dz-sub">COMPRAS.xlsx — o CSV/TXT del sistema contable</div>
+      </div>
+      <div class="file-list" id="sys-list"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div class="section-title" style="margin-bottom:8px">Configuración de columnas del sistema (N° de columna)</div>
+        <div class="cfg-row">
+          <label>RUC:</label>
+          <input type="number" id="col-ruc" value="5" min="1">
+          <label>N° Factura Prov.:</label>
+          <input type="number" id="col-num" value="7" min="1">
+          <label>Total:</label>
+          <input type="number" id="col-tot" value="18" min="1">
+          <label>Tolerancia $:</label>
+          <input type="number" id="tol" value="0.02" step="0.01" style="width:70px">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" onclick="run()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Cruzar documentos
+        </button>
+        <button class="btn btn-danger" onclick="clearAll()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Limpiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="stat-row" id="stats"></div>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="all" onclick="showTab('all',this)">Todos</button>
+        <button class="tab" data-tab="ok" onclick="showTab('ok',this)">✓ Coinciden</button>
+        <button class="tab" data-tab="missing" onclick="showTab('missing',this)">✗ No ingresados</button>
+        <button class="tab" data-tab="diff" onclick="showTab('diff',this)">⚠ Diferencia $</button>
+        <button class="tab" data-tab="extra" onclick="showTab('extra',this)">← Solo en sistema</button>
+      </div>
+      <div class="toolbar">
+        <input class="search-inp" id="search" type="text" placeholder="Buscar RUC, proveedor, número de factura...">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-primary" onclick="exportXLSX()">⬇ Exportar Excel completo</button>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Estado</th>
+              <th>RUC Proveedor</th>
+              <th>Proveedor</th>
+              <th>N° Factura</th>
+              <th>Tipo</th>
+              <th>Fecha</th>
+              <th class="num">Total SRI</th>
+              <th class="num">Total Sistema</th>
+              <th class="num">Diferencia</th>
+              <th>Observación</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+      <div id="tbl-empty" class="empty" style="display:none">😶 Sin registros en este filtro</div>
+      <div id="tbl-count" style="font-size:11px;color:#aaa;margin-top:8px;text-align:right"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let sriDocs=[], sysRows=[], results=[], curTab='all';
+
+function toast(msg,ms=2800){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>t.style.display='none',ms);
+}
+function fmt(n){
+  if(n==null||n===''||isNaN(n)) return '—';
+  return '$'+Number(n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtDiff(n){
+  if(n==null||isNaN(n)) return '—';
+  const s=Math.abs(n).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n>=0?'+':'-')+'$'+s;
+}
+function normalizeNum(s){
+  if(!s) return '';
+  s=String(s).trim().replace(/\s+/g,'');
+  const parts=s.split('-');
+  if(parts.length===3){
+    const e=parts[0].replace(/\D/g,'').padStart(3,'0');
+    const p=parts[1].replace(/\D/g,'').padStart(3,'0');
+    const seq=parts[2].replace(/\D/g,'').padStart(9,'0');
+    return e+'-'+p+'-'+seq;
+  }
+  return s.toUpperCase();
+}
+function matchKey(ruc,num){ return String(ruc).replace(/\D/g,'').trim()+'||'+normalizeNum(num); }
+
+// Drop zones
+['dz-xml','dz-sys'].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener('dragover',e=>{ e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave',()=>el.classList.remove('over'));
+  el.addEventListener('drop',e=>{
+    e.preventDefault(); el.classList.remove('over');
+    if(id==='dz-xml') loadSRI(e.dataTransfer.files);
+    else loadSys(e.dataTransfer.files[0]);
+  });
+});
+document.getElementById('inp-xml').addEventListener('change',function(){ loadSRI(this.files); });
+document.getElementById('inp-sys').addEventListener('change',function(){ loadSys(this.files[0]); });
+
+// ── Detectar si TXT es del portal SRI (tiene columna RUC_EMISOR) ──────────
+function isSRIPortalTXT(firstLine){
+  return firstLine.includes('RUC_EMISOR') && firstLine.includes('SERIE_COMPROBANTE');
+}
+
+// ── Cargar comprobantes SRI (XML o TXT portal) ────────────────────────────
+function loadSRI(files){
+  if(!files||!files.length) return;
+  let pending=files.length, loaded=0;
+  Array.from(files).forEach(f=>{
+    const ext=f.name.split('.').pop().toLowerCase();
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        if(ext==='xml'){
+          const parser=new DOMParser();
+          const doc=parser.parseFromString(e.target.result,'text/xml');
+          if(doc.querySelector('parsererror')){ toast('XML inválido: '+f.name); }
+          else { const d=parseXML(doc,f.name); if(d){ sriDocs.push(d); loaded++; } }
+        } else {
+          // TXT/TSV del portal SRI
+          const text=e.target.result;
+          const lines=text.split(/\r?\n/).filter(l=>l.trim());
+          if(!lines.length){ toast('Archivo vacío: '+f.name); }
+          else if(!isSRIPortalTXT(lines[0])){
+            toast('⚠ '+f.name+' no parece ser un TXT del portal SRI');
+          } else {
+            const parsed=parseSRIPortalTXT(lines, f.name);
+            sriDocs.push(...parsed);
+            loaded+=parsed.length;
+          }
+        }
+      }catch(err){ toast('Error en '+f.name+': '+err.message); }
+      if(--pending===0){
+        renderSRIList();
+        toast(loaded+' comprobante(s) cargado(s) — Total: '+sriDocs.length);
+      }
+    };
+    // TXT del SRI viene en ISO-8859-1 — leer como latin1
+    if(ext==='xml') r.readAsText(f,'utf-8');
+    else r.readAsText(f,'iso-8859-1');
+  });
+}
+
+function renderSRIList(){
+  const byFile={};
+  sriDocs.forEach(d=>{ byFile[d.filename]=(byFile[d.filename]||0)+1; });
+  document.getElementById('xml-list').innerHTML=
+    Object.entries(byFile).map(([fn,n])=>`<div>✓ ${fn} — ${n} comprobante(s)</div>`).join('');
+}
+
+// ── Parser XML ────────────────────────────────────────────────────────────
+function parseXML(doc,fname){
+  function qs(tag){
+    let el=doc.querySelector(tag);
+    if(!el) el=[...doc.getElementsByTagName('*')].find(e=>e.localName===tag);
+    return el?el.textContent.trim():'';
+  }
+  let tipo='Factura';
+  const root=doc.documentElement.localName.toLowerCase();
+  if(root.includes('retencion')||qs('codRetDoc')) tipo='Retención';
+  else if(root.includes('notacredito')) tipo='Nota de Crédito';
+  else if(root.includes('notadebito')) tipo='Nota de Débito';
+  else if(root.includes('liquidacion')) tipo='Liquidación';
+
+  const rucProv=(qs('rucProveedor')||qs('ruc')||'').replace(/\D/g,'').trim();
+  const razon=qs('razonSocialProveedor')||qs('razonSocial')||qs('nombreEmisor')||'';
+
+  const estab=qs('estabDoc')||qs('estab')||'';
+  const pto=qs('ptoEmiDoc')||qs('ptoEmi')||'';
+  const secuencial=qs('secuencialDoc')||qs('secuencial')||'';
+  let numDoc='';
+  if(estab&&pto&&secuencial){
+    numDoc=estab.padStart(3,'0')+'-'+pto.padStart(3,'0')+'-'+secuencial.padStart(9,'0');
+  } else {
+    numDoc=qs('numDocSustento')||secuencial||'';
+  }
+  const fecha=qs('fechaEmision')||qs('fechaIniSustento')||'';
+  let total=parseFloat(qs('importeTotal')||qs('valorTotal')||'0')||0;
+  if(total===0){
+    const subtotal=parseFloat(qs('totalSinImpuestos')||'0')||0;
+    let iva=0;
+    [...doc.getElementsByTagName('*')]
+      .filter(e=>e.localName==='totalImpuesto'||e.localName==='impuesto')
+      .forEach(el=>{
+        const cod=el.querySelector('codigo');
+        if(cod&&(cod.textContent.trim()==='2'||cod.textContent.trim()==='4')){
+          const v=el.querySelector('valor'); if(v) iva+=parseFloat(v.textContent)||0;
+        }
+      });
+    total=subtotal+iva;
+  }
+  return{filename:fname,rucProv,razon,numDoc:normalizeNum(numDoc),fecha,total,tipo,source:'xml'};
+}
+
+// ── Parser TXT portal SRI ─────────────────────────────────────────────────
+function parseSRIPortalTXT(lines, fname){
+  const header=lines[0].split('\t').map(h=>h.trim());
+  const idx={};
+  header.forEach((h,i)=>idx[h]=i);
+
+  // Columnas esperadas del portal SRI
+  const C_RUC    = idx['RUC_EMISOR'];
+  const C_RAZON  = idx['RAZON_SOCIAL_EMISOR'];
+  const C_TIPO   = idx['TIPO_COMPROBANTE'];
+  const C_SERIE  = idx['SERIE_COMPROBANTE'];
+  const C_FECHA  = idx['FECHA_EMISION'];
+  const C_BASE   = idx['VALOR_SIN_IMPUESTOS'];
+  const C_IVA    = idx['IVA'];
+  const C_TOTAL  = idx['IMPORTE_TOTAL'];
+
+  const docs=[];
+  for(let i=1;i<lines.length;i++){
+    const cols=lines[i].split('\t');
+    if(cols.length<4) continue;
+    const ruc   =(cols[C_RUC]||'').replace(/\D/g,'').trim();
+    const razon =(cols[C_RAZON]||'').trim();
+    const tipo  =(cols[C_TIPO]||'Factura').trim();
+    const serie =(cols[C_SERIE]||'').trim();
+    const fecha =(cols[C_FECHA]||'').trim();
+
+    // Para notas de crédito IMPORTE_TOTAL viene vacío; calcular base+iva
+    let total=0;
+    const rawTotal=(cols[C_TOTAL]||'').trim();
+    if(rawTotal&&rawTotal!==''){
+      total=parseFloat(rawTotal.replace(',','.'))||0;
+    } else {
+      const base=parseFloat((cols[C_BASE]||'0').replace(',','.'))||0;
+      const iva =parseFloat((cols[C_IVA ]||'0').replace(',','.'))||0;
+      total=Math.round((base+iva)*100)/100;
+    }
+
+    if(ruc&&serie){
+      docs.push({filename:fname, rucProv:ruc, razon, numDoc:normalizeNum(serie), fecha, total, tipo, source:'txt'});
+    }
+  }
+  return docs;
+}
+
+// ── Sistema ───────────────────────────────────────────────────────────────
+function loadSys(file){
+  if(!file) return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='xlsx'||ext==='xls'){
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        parseSysRows(rows,1);
+        document.getElementById('sys-list').innerHTML=`<div>✓ ${file.name} — ${sysRows.length} registros cargados</div>`;
+        toast(sysRows.length+' registros del sistema cargados');
+      }catch(err){ toast('Error leyendo Excel: '+err.message); }
+    };
+    r.readAsArrayBuffer(file);
+  } else {
+    const r=new FileReader();
+    r.onload=e=>{
+      const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());
+      const sep=detectSep(lines[0]||'');
+      parseSysRows(lines.map(l=>l.split(sep)),1);
+      document.getElementById('sys-list').innerHTML=`<div>✓ ${file.name} — ${sysRows.length} registros cargados</div>`;
+      toast(sysRows.length+' registros cargados');
+    };
+    r.readAsText(file,'utf-8');
+  }
+}
+function detectSep(line){
+  const c={'\t':0,';':0,',':0,'|':0};
+  Object.keys(c).forEach(s=>c[s]=line.split(s).length-1);
+  return Object.keys(c).reduce((a,b)=>c[a]>=c[b]?a:b);
+}
+function parseSysRows(rows, startRow){
+  sysRows=[];
+  const cRuc=parseInt(document.getElementById('col-ruc').value)-1;
+  const cNum=parseInt(document.getElementById('col-num').value)-1;
+  const cTot=parseInt(document.getElementById('col-tot').value)-1;
+  for(let i=startRow;i<rows.length;i++){
+    const cols=rows[i];
+    if(!cols||cols.length<3) continue;
+    const ruc=String(cols[cRuc]||'').replace(/\D/g,'').trim();
+    const num=String(cols[cNum]||'').trim();
+    const tv=String(cols[cTot]||'').replace(/[$,\s]/g,'');
+    const tot=tv?parseFloat(tv):null;
+    const razon=String(cols[5]||'').trim();
+    const obs=String(cols[10]||'').trim();
+    const fecha=String(cols[3]||'').trim();
+    if(ruc||num) sysRows.push({ruc,num:normalizeNum(num),total:isNaN(tot)?null:tot,razon,obs,fecha,raw:cols});
+  }
+}
+
+// ── Cruce ─────────────────────────────────────────────────────────────────
+function run(){
+  if(!sriDocs.length){ toast('⚠ Carga primero los comprobantes del SRI (XML o TXT)'); return; }
+  if(!sysRows.length){ toast('⚠ Carga primero el archivo del sistema'); return; }
+  const tol=parseFloat(document.getElementById('tol').value)||0.02;
+
+  const sysMap={};
+  sysRows.forEach(r=>{ sysMap[matchKey(r.ruc,r.num)]=r; });
+
+  results=[];
+  sriDocs.forEach(d=>{
+    const key=matchKey(d.rucProv,d.numDoc);
+    const sys=sysMap[key];
+    let status, diff=null;
+    if(!sys){ status='missing'; }
+    else {
+      if(sys.total!==null&&!isNaN(sys.total)){
+        // NC en sistema viene negativo; comparar en valor absoluto
+        const sriAbs=Math.abs(d.total);
+        const sysAbs=Math.abs(sys.total);
+        diff=Math.round((sriAbs-sysAbs)*100)/100;
+        status=Math.abs(diff)<=tol?'ok':'diff';
+      } else { status='ok'; }
+    }
+    results.push({...d,sys,status,diff,key});
+  });
+
+  const sriKeys=new Set(sriDocs.map(d=>matchKey(d.rucProv,d.numDoc)));
+  sysRows.forEach(r=>{
+    if(!sriKeys.has(matchKey(r.ruc,r.num))){
+      results.push({rucProv:r.ruc,razon:r.razon,numDoc:r.num,fecha:r.fecha||'—',total:null,tipo:'—',sys:r,status:'extra',diff:null,key:matchKey(r.ruc,r.num)});
+    }
+  });
+
+  renderStats();
+  document.getElementById('results').style.display='block';
+  showTab('all', document.querySelector('.tab[data-tab="all"]'));
+  document.getElementById('search').oninput=()=>renderTable(curTab);
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  toast('✓ Cruce completado — '+results.length+' registros');
+}
+
+function renderStats(){
+  const ok=results.filter(r=>r.status==='ok');
+  const miss=results.filter(r=>r.status==='missing');
+  const diff=results.filter(r=>r.status==='diff');
+  const extra=results.filter(r=>r.status==='extra');
+  const totalSRI=results.filter(r=>r.total!=null&&r.status!=='extra').reduce((a,b)=>a+(b.total||0),0);
+  const totalMiss=miss.filter(r=>r.total!=null).reduce((a,b)=>a+(b.total||0),0);
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="lbl">Total SRI</div><div class="val">${sriDocs.length}</div><div class="amt">${fmt(totalSRI)}</div></div>
+    <div class="stat"><div class="lbl">Registros sistema</div><div class="val">${sysRows.length}</div><div class="amt">&nbsp;</div></div>
+    <div class="stat"><div class="lbl" style="color:#16a34a">✓ Coinciden</div><div class="val val-ok">${ok.length}</div><div class="amt">&nbsp;</div></div>
+    <div class="stat"><div class="lbl" style="color:#dc2626">✗ No ingresados</div><div class="val val-miss">${miss.length}</div><div class="amt">${fmt(totalMiss)}</div></div>
+    <div class="stat"><div class="lbl" style="color:#d97706">⚠ Con diferencia</div><div class="val val-diff">${diff.length}</div><div class="amt">&nbsp;</div></div>
+  `;
+}
+
+function showTab(tab, el){
+  curTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderTable(tab);
+}
+
+function renderTable(tab){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  let rows=results;
+  if(tab!=='all') rows=rows.filter(r=>r.status===tab);
+  if(q) rows=rows.filter(r=>(r.rucProv+' '+r.razon+' '+r.numDoc+' '+(r.sys?r.sys.obs:'')).toLowerCase().includes(q));
+  const tbody=document.getElementById('tbl-body');
+  const empty=document.getElementById('tbl-empty');
+  const count=document.getElementById('tbl-count');
+  if(!rows.length){ tbody.innerHTML=''; empty.style.display='block'; count.textContent=''; return; }
+  empty.style.display='none';
+  count.textContent=rows.length+' registro(s)';
+  tbody.innerHTML=rows.map(r=>{
+    const sc=r.status==='ok'?'st-ok':r.status==='missing'?'st-miss':r.status==='diff'?'st-diff':'st-extra';
+    const sl=r.status==='ok'?'✓ OK':r.status==='missing'?'✗ No ingresado':r.status==='diff'?'⚠ Diferencia':'← Solo sistema';
+    const diffStyle=r.diff!=null&&Math.abs(r.diff)>0.01?'color:#d97706;font-weight:600':'';
+    const diffCell=r.diff!=null?`<td class="num" style="${diffStyle}">${fmtDiff(r.diff)}</td>`:'<td class="num" style="color:#ccc">—</td>';
+    return`<tr>
+      <td><span class="${sc}">${sl}</span></td>
+      <td class="mono">${r.rucProv||'—'}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.razon||''}">${r.razon||'—'}</td>
+      <td class="mono">${r.numDoc||'—'}</td>
+      <td><span class="chip">${r.tipo||'—'}</span></td>
+      <td style="font-size:11px">${r.fecha||'—'}</td>
+      <td class="num">${r.total!=null?fmt(r.total):'—'}</td>
+      <td class="num">${r.sys&&r.sys.total!=null?fmt(r.sys.total):'—'}</td>
+      ${diffCell}
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#888" title="${r.sys&&r.sys.obs?r.sys.obs:''}">${r.sys&&r.sys.obs?r.sys.obs:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function labelEstado(s){
+  return s==='ok'?'OK':s==='missing'?'No ingresado':s==='diff'?'Diferencia':'Solo sistema';
+}
+function rowData(r){
+  return[
+    labelEstado(r.status),
+    r.rucProv||'',
+    r.razon||'',
+    r.numDoc||'',
+    r.tipo||'',
+    r.fecha||'',
+    r.total!=null?parseFloat(Math.abs(r.total).toFixed(2)):'',
+    r.sys&&r.sys.total!=null?parseFloat(Math.abs(r.sys.total).toFixed(2)):'',
+    r.diff!=null?parseFloat(Math.abs(r.diff).toFixed(2)):'',
+    r.sys&&r.sys.obs?r.sys.obs:''
+  ];
+}
+
+function styleSheet(ws, nRows){
+  const COL_WIDTHS=[16,16,38,22,22,14,13,14,12,35];
+  ws['!cols']=COL_WIDTHS.map(w=>({wch:w}));
+  // Header row style
+  for(let c=0;c<10;c++){
+    const ref=XLSX.utils.encode_cell({r:0,c});
+    if(!ws[ref]) continue;
+    ws[ref].s={
+      font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:10},
+      fill:{patternType:'solid',fgColor:{rgb:'1E3A5F'}},
+      alignment:{horizontal:'center',vertical:'center',wrapText:true},
+      border:{bottom:{style:'thin',color:{rgb:'AAAAAA'}}}
+    };
+  }
+  // Data rows
+  for(let r=1;r<nRows;r++){
+    for(let c=0;c<10;c++){
+      const ref=XLSX.utils.encode_cell({r,c});
+      if(!ws[ref]) ws[ref]={t:'z',v:''};
+      const bg=r%2===0?'F8F9FB':'FFFFFF';
+      ws[ref].s={
+        font:{name:'Arial',sz:9},
+        fill:{patternType:'solid',fgColor:{rgb:bg}},
+        alignment:{vertical:'center',wrapText:false},
+        border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}}
+      };
+    }
+  }
+}
+
+function makeSheet(rows){
+  const HDR=['Estado','RUC Emisor','Proveedor SRI','N° Comprobante','Tipo','Fecha Emision','Total SRI','Total Sistema','Diferencia','Observacion Sistema'];
+  const data=[HDR,...rows.map(rowData)];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  styleSheet(ws, data.length);
+  return ws;
+}
+
+function exportXLSX(){
+  const wb=XLSX.utils.book_new();
+  const today=new Date();
+  const fechaStr=today.toLocaleDateString('es-EC');
+
+  // ── Hoja RESUMEN ──────────────────────────────────────────────
+  const ok    =results.filter(r=>r.status==='ok');
+  const miss  =results.filter(r=>r.status==='missing');
+  const diff  =results.filter(r=>r.status==='diff');
+  const extra =results.filter(r=>r.status==='extra');
+
+  const totalSRI   =results.filter(r=>r.total!=null&&r.status!=='extra').reduce((a,b)=>a+Math.abs(b.total||0),0);
+  const totalSys   =results.filter(r=>r.sys&&r.sys.total!=null&&r.status!=='missing').reduce((a,b)=>a+Math.abs(b.sys.total||0),0);
+  const montoMiss  =miss.reduce((a,b)=>a+Math.abs(b.total||0),0);
+  const montoOk    =ok.reduce((a,b)=>a+Math.abs(b.total||0),0);
+  const montoExtra =extra.reduce((a,b)=>a+Math.abs(b.sys&&b.sys.total||0),0);
+
+  const sriCount=sriDocs.length;
+  const sysCount=sysRows.length;
+
+  // Contar por tipo
+  const byTipo={};
+  sriDocs.forEach(d=>{ byTipo[d.tipo]=(byTipo[d.tipo]||{count:0,monto:0}); byTipo[d.tipo].count++; byTipo[d.tipo].monto+=Math.abs(d.total||0); });
+
+  const resData=[
+    ['CONCILIACIÓN SRI vs SISTEMA','','',''],
+    ['Fecha de generación:',fechaStr,'',''],
+    ['','','',''],
+    ['CONCEPTO','SRI','SISTEMA','DIFERENCIA'],
+    ['Total comprobantes (cantidad)',sriCount,sysCount,sriCount-sysCount],
+    ['Total monto',parseFloat(totalSRI.toFixed(2)),parseFloat(totalSys.toFixed(2)),parseFloat((totalSRI-totalSys).toFixed(2))],
+    ['','','',''],
+    ['RESULTADO DEL CRUCE','CANTIDAD','MONTO SRI',''],
+    ['✓ Coinciden (OK)',ok.length,parseFloat(montoOk.toFixed(2)),''],
+    ['✗ No ingresados en sistema',miss.length,parseFloat(montoMiss.toFixed(2)),''],
+    ['⚠ Con diferencia de monto',diff.length,parseFloat(diff.reduce((a,b)=>a+Math.abs(b.total||0),0).toFixed(2)),''],
+    ['← Solo en sistema (sin SRI)',extra.length,'',''],
+    ['','','',''],
+    ['DETALLE POR TIPO DE COMPROBANTE (SRI)','CANTIDAD','MONTO TOTAL',''],
+    ...Object.entries(byTipo).map(([tipo,v])=>[tipo,v.count,parseFloat(v.monto.toFixed(2)),''])
+  ];
+
+  const wsRes=XLSX.utils.aoa_to_sheet(resData);
+  wsRes['!cols']=[{wch:42},{wch:18},{wch:18},{wch:15}];
+  wsRes['!merges']=[{s:{r:0,c:0},e:{r:0,c:3}}];
+
+  // Estilo título
+  if(wsRes['A1']) wsRes['A1'].s={font:{bold:true,color:{rgb:'FFFFFF'},sz:13,name:'Arial'},fill:{patternType:'solid',fgColor:{rgb:'1E3A5F'}},alignment:{horizontal:'center',vertical:'center'}};
+  // Estilo encabezados de sección
+  [[3,'1E3A5F'],[7,'1A56DB'],[13,'1A56DB']].forEach(([row,color])=>{
+    for(let c=0;c<4;c++){
+      const ref=XLSX.utils.encode_cell({r:row,c});
+      if(!wsRes[ref]) wsRes[ref]={t:'z',v:''};
+      wsRes[ref].s={font:{bold:true,color:{rgb:'FFFFFF'},name:'Arial',sz:10},fill:{patternType:'solid',fgColor:{rgb:color}},alignment:{horizontal:'center'}};
+    }
+  });
+  wsRes['!rows']=[{hpt:28},{},{},{hpt:20}];
+
+  XLSX.utils.book_append_sheet(wb,wsRes,'Resumen');
+
+  // ── Hojas de detalle ──────────────────────────────────────────
+  XLSX.utils.book_append_sheet(wb, makeSheet(results),                       'Todos');
+  XLSX.utils.book_append_sheet(wb, makeSheet(ok),                            'Coinciden');
+  XLSX.utils.book_append_sheet(wb, makeSheet(miss),                          'No Ingresados');
+  XLSX.utils.book_append_sheet(wb, makeSheet(diff),                          'Diferencias');
+  XLSX.utils.book_append_sheet(wb, makeSheet(extra),                         'Solo Sistema');
+
+  const fechaFile=today.toISOString().slice(0,10);
+  XLSX.writeFile(wb,`Conciliacion_SRI_${fechaFile}.xlsx`);
+  toast('✓ Excel exportado con 6 hojas');
+}
+
+function clearAll(){
+  sriDocs=[]; sysRows=[]; results=[];
+  document.getElementById('xml-list').innerHTML='';
+  document.getElementById('sys-list').innerHTML='';
+  document.getElementById('results').style.display='none';
+  document.getElementById('inp-xml').value='';
+  document.getElementById('inp-sys').value='';
+  toast('Limpiado — listo para nueva carga');
+}
+</script>
+</body>
+</html>
