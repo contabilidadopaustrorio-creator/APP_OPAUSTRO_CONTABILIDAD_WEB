@@ -150,17 +150,16 @@ function provision2026(fechaStr){
   let dd=+m[1], mm=+m[2], yy=+m[3]; if(yy<100) yy+=2000;
   const cutNum=CUT.y*10000+CUT.m*100+CUT.d;
   const ingNum=yy*10000+mm*100+dd;
-  // El ciclo 2026 empieza en el ANIVERSARIO de 2026 (mismo mes/día en 2026).
-  // Si ese aniversario aún no llega al corte (mes de jul a dic), todavía NO provisiona 2026 -> 0.
+  // El ciclo 2026 empieza en el ANIVERSARIO de 2026 (mismo mes/día).
+  // Si el aniversario cae después del corte (jul–dic), aún NO provisiona 2026 -> 0.
   const aniv2026 = 2026*10000+mm*100+dd;
   if(aniv2026 > cutNum) return 0;
-  // El inicio no puede ser anterior a la fecha de ingreso (empleados que ingresaron en 2026).
-  const startNum = Math.max(aniv2026, ingNum);
-  if(startNum > cutNum) return 0;
-  const sY=Math.floor(startNum/10000), sM=Math.floor((startNum%10000)/100), sD=startNum%100;
-  const d1=Math.min(sD,30), d2=Math.min(CUT.d,30);
-  let dias=(CUT.y-sY)*360+(CUT.m-sM)*30+(d2-d1);
-  if(dias<0)dias=0;
+  if(ingNum > cutNum) return 0; // ingresó después del corte
+  // Base comercial 30/360. Día de ingreso: si es el 1 -> mes completo (30); si no -> 30 - día.
+  const startDays = dd<=1 ? 30 : Math.max(0, 30-dd);
+  const fullMonths = CUT.m - mm; // meses completos posteriores hasta junio
+  let dias = startDays + fullMonths*30;
+  if(dias<0) dias=0;
   return Math.round(dias/24*100)/100; // 15/360 = 1/24
 }
 
