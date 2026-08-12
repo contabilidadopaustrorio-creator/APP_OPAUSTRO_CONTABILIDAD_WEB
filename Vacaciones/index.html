@@ -234,7 +234,7 @@ function parseGviz(resp){
   base=(resp.table.rows||[]).map(r=>{ const c=r.c||[];
     const fecha=String(cellF(c,iFec)).trim();
     const dias=toNum(cellV(c,iDias)), prov=provision2026(fecha);
-    return { ci:String(cellV(c,iCI)).trim(), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
+    return { ci:padCI(cellV(c,iCI)), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
       depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha,
       dias, prov, total:Math.round((dias+prov)*100)/100, derecho:derechoAnual(fecha) };
   }).filter(r=>r.nombre);
@@ -283,6 +283,8 @@ const VAC_API_URL='https://script.google.com/macros/s/AKfycbyyq1yWQJY1KZx6leqS44
 const VAC_API_KEY='VAC-CONTAB-2026';
 let iessData=null;
 const ck=s=>String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); // clave de cruce: dígitos SIN ceros a la izquierda (el Sheet guarda CI como número y pierde el 0 inicial)
+// Restaura la cédula a 10 dígitos (el Sheet guarda CI como número y borra el 0 inicial; toda cédula EC tiene 10).
+const padCI=s=>{ const d=String(s==null?'':s).replace(/\D/g,''); return d.length===9 ? '0'+d : d; };
 function iessStatus(t,err){ const s=$('iessStatus'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Provisión de días del MES = derecho anual * (días trabajados/360)
 function provisionMes(fechaStr,diasIESS){ return Math.round(derechoAnual(fechaStr)*(Number(diasIESS)||0)/360*100)/100; }
