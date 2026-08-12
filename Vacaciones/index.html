@@ -279,7 +279,7 @@ $('btnReload').onclick=fetchBase;
 document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=th.dataset.k; if(sort.key===k) sort.dir*=-1; else { sort.key=k; sort.dir=(k==='dias'||k==='total'||k==='prov')?-1:1; } render(); }; });
 
 /* ================= PLANILLA IESS ================= */
-const VAC_API_URL=''; // ← pega aquí el /exec del Apps Script de Vacaciones
+const VAC_API_URL='https://script.google.com/macros/s/AKfycbyyq1yWQJY1KZx6leqS44eNTcHpHMozxqsbAtNkwpw_dFdxoC9WhvyJlB2odXqQlR6g/exec';
 const VAC_API_KEY='VAC-CONTAB-2026';
 let iessData=null;
 const ck=s=>String(s==null?'':s).replace(/\D/g,''); // cédula solo dígitos (clave de cruce)
