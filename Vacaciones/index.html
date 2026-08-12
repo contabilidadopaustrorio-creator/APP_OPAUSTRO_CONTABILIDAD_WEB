@@ -23,7 +23,7 @@
   .stamp b{display:block;font-size:13px;color:var(--teal-deep)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
   .card h2{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow);position:relative;overflow:hidden}
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
   .kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);font-weight:600}
@@ -73,7 +73,6 @@
     <div class="kpis">
       <div class="kpi"><div class="lab">Empleados (activos)</div><div class="big" id="kEmp">0</div></div>
       <div class="kpi"><div class="lab">Días pendientes (total)</div><div class="big" id="kDias">0</div></div>
-      <div class="kpi"><div class="lab">Valor $ (total)</div><div class="big" id="kVal">$0,00</div></div>
       <div class="kpi"><div class="lab">Días provisión 2026 (total)</div><div class="big" id="kProv">0</div></div>
     </div>
 
@@ -99,10 +98,9 @@
             <th class="sortable" data-k="cargo">Cargo<span class="ar"></span></th>
             <th class="sortable" data-k="fecha">Ingreso<span class="ar"></span></th>
             <th class="sortable num" data-k="derecho" title="Derecho anual: 15 días + 1 por cada año sobre 5 (máx 30)">Días/año<span class="ar"></span></th>
-            <th class="sortable num" data-k="dias" title="Total de días pendientes (los que subiste)">Total días<span class="ar"></span></th>
-            <th class="sortable num" data-k="dias2025" title="Días de 2025 y anteriores = Total − Días 2026">Días 2025<span class="ar"></span></th>
+            <th class="sortable num" data-k="total" title="Total pendiente = Días 2025 + Días 2026">Total días<span class="ar"></span></th>
+            <th class="sortable num" data-k="dias" title="Días pendientes hasta 2025 (base del Sheet)">Días 2025<span class="ar"></span></th>
             <th class="sortable num" data-k="prov" title="Días provisionados en 2026 (ciclo actual hasta jun-2026)">Días 2026<span class="ar"></span></th>
-            <th class="sortable num" data-k="valor">Valor $<span class="ar"></span></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot id="tfoot"></tfoot>
@@ -136,7 +134,7 @@ function sortRows(rows){
   if(!sort.key) return rows;
   const k=sort.key, d=sort.dir;
   return rows.slice().sort((a,b)=>{
-    if(k==='dias'||k==='valor'||k==='prov'||k==='dias2025'||k==='derecho') return d*((a[k]||0)-(b[k]||0));
+    if(k==='dias'||k==='total'||k==='prov'||k==='derecho') return d*((a[k]||0)-(b[k]||0));
     if(k==='fecha') return d*(parseFecha(a.fecha)-parseFecha(b.fecha));
     return d*String(a[k]||'').localeCompare(String(b[k]||''),'es');
   });
@@ -188,7 +186,6 @@ function parseGviz(resp){
   const iCI=find('ci','cedula','identif'), iNom=find('nombre','empleado','apellido'), iEst=find('estado'),
         iDep=find('departamento','depto','area'), iCar=find('cargo','puesto'),
         iFec=find('fechadeingreso','fechaingreso','ingreso'),
-        iVal=find('valorpendiente','valor','dolar','usd','monto'),
         iDias=find('diaspendiente','diaspendientes','dias');
   const cellV=(c,i)=>{ const x=(i>=0&&c[i])?c[i]:null; return x==null?'':(x.v==null?'':x.v); };
   const cellF=(c,i)=>{ const x=(i>=0&&c[i])?c[i]:null; return x==null?'':(x.f!=null?x.f:(x.v==null?'':x.v)); };
@@ -197,7 +194,7 @@ function parseGviz(resp){
     const dias=toNum(cellV(c,iDias)), prov=provision2026(fecha);
     return { ci:String(cellV(c,iCI)).trim(), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
       depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha,
-      valor:toNum(cellV(c,iVal)), dias, prov, dias2025:Math.round((dias-prov)*100)/100, derecho:derechoAnual(fecha) };
+      dias, prov, total:Math.round((dias+prov)*100)/100, derecho:derechoAnual(fecha) };
   }).filter(r=>r.nombre);
   buildFilters(); render(); status('✓ '+base.length+' empleados cargados desde el Sheet.');
 }
@@ -220,8 +217,7 @@ function render(){
   const rows=filtered();
   const activos=base.filter(r=>norm(r.estado).includes('activo'));
   $('kEmp').textContent=activos.length||base.length;
-  $('kDias').textContent=fmtD(base.reduce((a,b)=>a+b.dias,0));
-  $('kVal').textContent=fmt$(base.reduce((a,b)=>a+b.valor,0));
+  $('kDias').textContent=fmtD(base.reduce((a,b)=>a+b.total,0));
   $('kProv').textContent=fmtD(base.reduce((a,b)=>a+b.prov,0));
   $('cnt').textContent=rows.length+' de '+base.length;
   const sorted=sortRows(rows);
@@ -229,16 +225,16 @@ function render(){
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
     <td>${r.depto}</td><td>${r.cargo}</td><td>${r.fecha||'—'}</td>
     <td class="num">${r.derecho}</td>
-    <td class="num" style="font-weight:600">${fmtD(r.dias)}</td><td class="num">${fmtD(r.dias2025)}</td><td class="num" style="color:var(--teal-deep);font-weight:600">${fmtD(r.prov)}</td><td class="num">${fmt$(r.valor)}</td></tr>`).join('');
+    <td class="num" style="font-weight:600">${fmtD(r.total)}</td><td class="num">${fmtD(r.dias)}</td><td class="num" style="color:var(--teal-deep);font-weight:600">${fmtD(r.prov)}</td></tr>`).join('');
   $('tblEmpty').style.display=rows.length?'none':'block';
-  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td></td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias2025,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.prov,0))}</td><td class="num">${fmt$(rows.reduce((a,b)=>a+b.valor,0))}</td></tr>`;
+  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td></td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.total,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.prov,0))}</td></tr>`;
   document.querySelectorAll('th.sortable').forEach(th=>{ const on=th.dataset.k===sort.key; th.classList.toggle('on',on); const ar=th.querySelector('.ar'); if(ar) ar.textContent=on?(sort.dir<0?'▼':'▲'):'⇅'; });
 }
 ['fDep','fCar','fEst'].forEach(id=>$(id).onchange=render);
 $('fBuscar').oninput=render;
 $('btnReset').onclick=()=>{ $('fDep').value='';$('fCar').value='';$('fEst').value='';$('fBuscar').value=''; render(); };
 $('btnReload').onclick=fetchBase;
-document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=th.dataset.k; if(sort.key===k) sort.dir*=-1; else { sort.key=k; sort.dir=(k==='dias'||k==='valor')?-1:1; } render(); }; });
+document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=th.dataset.k; if(sort.key===k) sort.dir*=-1; else { sort.key=k; sort.dir=(k==='dias'||k==='total'||k==='prov')?-1:1; } render(); }; });
 fetchBase();
 </script>
 </body>
