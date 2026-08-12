@@ -282,7 +282,7 @@ document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=
 const VAC_API_URL='https://script.google.com/macros/s/AKfycbyyq1yWQJY1KZx6leqS44eNTcHpHMozxqsbAtNkwpw_dFdxoC9WhvyJlB2odXqQlR6g/exec';
 const VAC_API_KEY='VAC-CONTAB-2026';
 let iessData=null;
-const ck=s=>String(s==null?'':s).replace(/\D/g,''); // cédula solo dígitos (clave de cruce)
+const ck=s=>String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); // clave de cruce: dígitos SIN ceros a la izquierda (el Sheet guarda CI como número y pierde el 0 inicial)
 function iessStatus(t,err){ const s=$('iessStatus'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Provisión de días del MES = derecho anual * (días trabajados/360)
 function provisionMes(fechaStr,diasIESS){ return Math.round(derechoAnual(fechaStr)*(Number(diasIESS)||0)/360*100)/100; }
@@ -339,13 +339,14 @@ function procesarPlanilla(buf){
   const baseMap={}; base.forEach(e=>{ baseMap[ck(e.ci)]=e; });
   const planillaCis=new Set(), matched=[], nuevos=[];
   rows.forEach(r=>{
-    const key=ck(r[idx.ci]); if(!key) return; planillaCis.add(key);
+    const rawCi=String(r[idx.ci]).trim();
+    const key=ck(rawCi); if(!key) return; planillaCis.add(key);
     const nombre=String(r[idx.nom]||'').trim();
     const sueldo=idx.sue>=0?toNum(r[idx.sue]):0;
     const dias=(idx.dia>=0?toNum(r[idx.dia]):0)||30;
     const emp=baseMap[key];
-    if(emp) matched.push({ ci:emp.ci, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias) });
-    else nuevos.push({ ci:String(r[idx.ci]).trim(), nombre, sueldo, dias });
+    if(emp) matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias) });
+    else nuevos.push({ ci:rawCi, nombre, sueldo, dias });
   });
   const bajas=base.filter(e=>norm(e.estado).includes('activo') && !planillaCis.has(ck(e.ci)));
 
