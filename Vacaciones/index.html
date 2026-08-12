@@ -282,6 +282,23 @@ document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=
 const VAC_API_URL='https://script.google.com/macros/s/AKfycbyyq1yWQJY1KZx6leqS44eNTcHpHMozxqsbAtNkwpw_dFdxoC9WhvyJlB2odXqQlR6g/exec';
 const VAC_API_KEY='VAC-CONTAB-2026';
 let iessData=null;
+let excluidos=new Set(); // cédulas que NO se provisionan (pasantes u otros), leídas de la pestaña "Excluidos"
+function fetchExcluidos(){
+  const cb='exc_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      let iCi=-1; for(let i=0;i<cols.length;i++){ if(cols[i].includes('ci')||cols[i].includes('cedula')){ iCi=i; break; } }
+      const set=new Set();
+      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[]; const v=(iCi>=0&&c[iCi])?c[iCi].v:null; const k=ck(v); if(k) set.add(k); });
+      excluidos=set;
+    }catch(e){ /* pestaña vacía o inexistente */ }
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Excluidos&_='+Date.now();
+  s.onerror=()=>{ /* la pestaña "Excluidos" aún no existe: no pasa nada */ };
+  document.body.appendChild(s);
+}
 const ck=s=>String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); // clave de cruce: dígitos SIN ceros a la izquierda (el Sheet guarda CI como número y pierde el 0 inicial)
 // Restaura la cédula a 10 dígitos (el Sheet guarda CI como número y borra el 0 inicial; toda cédula EC tiene 10).
 const padCI=s=>{ const d=String(s==null?'':s).replace(/\D/g,''); return d.length===9 ? '0'+d : d; };
@@ -342,7 +359,9 @@ function procesarPlanilla(buf){
   const planillaCis=new Set(), matched=[], nuevos=[];
   rows.forEach(r=>{
     const rawCi=String(r[idx.ci]).trim();
-    const key=ck(rawCi); if(!key) return; planillaCis.add(key);
+    const key=ck(rawCi); if(!key) return;
+    if(excluidos.has(key)) return; // pasante/excluido: no se provisiona ni se cuenta
+    planillaCis.add(key);
     const nombre=String(r[idx.nom]||'').trim();
     const sueldo=idx.sue>=0?toNum(r[idx.sue]):0;
     const dias=(idx.dia>=0?toNum(r[idx.dia]):0)||30;
@@ -350,7 +369,7 @@ function procesarPlanilla(buf){
     if(emp) matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias) });
     else nuevos.push({ ci:rawCi, nombre, sueldo, dias });
   });
-  const bajas=base.filter(e=>norm(e.estado).includes('activo') && !planillaCis.has(ck(e.ci)));
+  const bajas=base.filter(e=>norm(e.estado).includes('activo') && !planillaCis.has(ck(e.ci)) && !excluidos.has(ck(e.ci)));
 
   iessData={ periodo:per||'', matched, nuevos, bajas };
   if(per) $('iessPer').value=per;
@@ -373,7 +392,7 @@ function renderIess(){
     <td><input type="search" id="nf_${i}" placeholder="dd/mm/aaaa" style="min-width:110px"></td>
     <td><input type="search" id="nc_${i}" placeholder="Cargo" style="min-width:120px"></td>
     <td><input type="search" id="nd_${i}" placeholder="Departamento" style="min-width:120px"></td>
-    <td><button class="btn" data-add="${i}">Agregar</button></td></tr>`).join('');
+    <td><button class="btn" data-add="${i}">Agregar</button> <button class="btn ghost" data-excl="${i}" title="No provisionar (pasante)">Excluir</button></td></tr>`).join('');
 
   $('iessBajaWrap').style.display=d.bajas.length?'block':'none';
   $('iessBajaCnt').textContent=d.bajas.length;
@@ -385,14 +404,26 @@ function renderIess(){
 }
 
 $('iessNewBody').addEventListener('click',async ev=>{
-  const btn=ev.target.closest('[data-add]'); if(!btn) return;
-  const i=+btn.dataset.add, n=iessData.nuevos[i];
-  const fecha=$('nf_'+i).value.trim(), cargo=$('nc_'+i).value.trim(), depto=$('nd_'+i).value.trim();
-  if(!fecha||!cargo){ alert('Pon al menos fecha de ingreso y cargo.'); return; }
-  btn.disabled=true; btn.textContent='…';
-  try{ await api('agregarEmpleado',{ci:n.ci,nombre:n.nombre,fechaIngreso:fecha,cargo,departamento:depto});
-    btn.textContent='✓ Agregado'; btn.closest('tr').style.opacity=.5;
-  }catch(err){ alert('No se pudo agregar: '+err.message); btn.disabled=false; btn.textContent='Agregar'; }
+  const addBtn=ev.target.closest('[data-add]');
+  const exBtn=ev.target.closest('[data-excl]');
+  if(addBtn){
+    const i=+addBtn.dataset.add, n=iessData.nuevos[i];
+    const fecha=$('nf_'+i).value.trim(), cargo=$('nc_'+i).value.trim(), depto=$('nd_'+i).value.trim();
+    if(!fecha||!cargo){ alert('Pon al menos fecha de ingreso y cargo.'); return; }
+    addBtn.disabled=true; addBtn.textContent='…';
+    try{ await api('agregarEmpleado',{ci:n.ci,nombre:n.nombre,fechaIngreso:fecha,cargo,departamento:depto});
+      addBtn.textContent='✓ Agregado'; addBtn.closest('tr').style.opacity=.5;
+      const eb=addBtn.closest('tr').querySelector('[data-excl]'); if(eb) eb.disabled=true;
+    }catch(err){ alert('No se pudo agregar: '+err.message); addBtn.disabled=false; addBtn.textContent='Agregar'; }
+  } else if(exBtn){
+    const i=+exBtn.dataset.excl, n=iessData.nuevos[i];
+    if(!confirm('¿Excluir a '+n.nombre+'? No se le provisionará (pasante) y no volverá a aparecer.')) return;
+    exBtn.disabled=true; exBtn.textContent='…';
+    try{ await api('excluirEmpleado',{ci:n.ci,nombre:n.nombre,motivo:'Pasante'});
+      excluidos.add(ck(n.ci)); exBtn.textContent='✓ Excluido'; exBtn.closest('tr').style.opacity=.5;
+      const ab=exBtn.closest('tr').querySelector('[data-add]'); if(ab) ab.disabled=true;
+    }catch(err){ alert('No se pudo excluir: '+err.message); exBtn.disabled=false; exBtn.textContent='Excluir'; }
+  }
 });
 $('iessBajaBody').addEventListener('click',async ev=>{
   const btn=ev.target.closest('[data-baja]'); if(!btn) return;
@@ -411,6 +442,7 @@ $('iessSave').onclick=async()=>{
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
+fetchExcluidos();
 fetchBase();
 </script>
 </body>
