@@ -246,8 +246,35 @@
   </div><!-- /panel salidas -->
 
   <div class="tab-panel" data-panel="plan">
-  <div class="soon">
-    <div class="card"><h2>🗓️ Planificación <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Programar vacaciones futuras.</p></div>
+  <div class="card" id="planCard">
+    <h2>🗓️ Planificación de vacaciones</h2>
+    <p class="sub" style="margin:0 0 10px">Programa las vacaciones usando <b>solo los días del 2025</b> (los del 2026 son para 2027, no se planifican todavía). Filtra por área y cargo.</p>
+    <div class="filters" style="margin-bottom:10px">
+      <div class="fg"><label>Departamento</label><select id="pDep"><option value="">Todos</option></select></div>
+      <div class="fg"><label>Cargo</label><select id="pCar"><option value="">Todos</option></select></div>
+      <div class="fg" style="flex:1;min-width:200px"><label>Empleado</label><input type="search" id="pEmp" list="dlEmpP" placeholder="Escribe o elige…" autocomplete="off"><datalist id="dlEmpP"></datalist></div>
+      <div class="fg"><label>Días</label><input type="number" id="pDias" min="0.5" step="0.5" placeholder="Ej. 5" style="min-width:75px"></div>
+      <div class="fg"><label>Desde (opcional)</label><input type="search" id="pDesde" placeholder="dd/mm/aaaa" style="min-width:110px"></div>
+      <div class="spacer"></div>
+      <button class="btn" id="pReg">Planificar</button>
+    </div>
+    <div id="pSaldo" class="sub" style="margin:0 0 6px;min-height:16px"></div>
+    <div class="status" id="pStatus" style="margin:0 0 10px"></div>
+
+    <div class="subhead">📋 Disponibilidad para planificar (días 2025)</div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Cédula</th><th>Nombre</th><th>Departamento</th><th>Cargo</th><th class="num">Días 2025</th><th class="num">Planificado</th><th class="num">Por planificar</th></tr></thead>
+      <tbody id="pTablaBody"></tbody>
+    </table></div>
+
+    <div id="pListaWrap" style="display:none">
+      <div class="subhead" style="margin-top:18px">🗓️ Planificaciones registradas <span class="pill" id="pCnt"></span></div>
+      <p class="sub" style="margin:0 0 8px">Solo puedes deshacer el <b>último</b> de cada empleado (en orden).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Registrado</th><th>Cédula</th><th>Nombre</th><th class="num">Días</th><th>Desde</th><th></th></tr></thead>
+        <tbody id="pListaBody"></tbody>
+      </table></div>
+    </div>
   </div>
   </div><!-- /panel plan -->
 
@@ -266,6 +293,8 @@ let acumMap={}; // ci → {p2025,p2026} provisiones acumuladas subidas (pestaña
 let tomadosMap={}; // ci → {t2025,t2026} días de vacaciones ya tomados (pestaña "Dias Tomados")
 let tomados=[];    // lista de registros de días tomados
 let liquidadosMap={}; // ci → {l2025,l2026,total} liquidaciones al salir (pestaña "Liquidaciones")
+let planMap={};   // ci → total días planificados (pestaña "Planificacion")
+let planList=[];  // registros de planificación
 let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Parser único de fechas: entiende dd/mm/aaaa y aaaa-mm-dd (los empleados agregados quedan en aaaa-mm-dd).
@@ -361,7 +390,7 @@ function buildFilters(){
   const esc=v=>String(v).replace(/"/g,'&quot;');
   if($('dlCargos')) $('dlCargos').innerHTML=cargos.map(v=>`<option value="${esc(v)}"></option>`).join('');
   if($('dlDeptos')) $('dlDeptos').innerHTML=deptos.map(v=>`<option value="${esc(v)}"></option>`).join('');
-  fillTom(); fillSal();
+  fillTom(); fillSal(); fillPlan();
 }
 function filtered(){
   const dep=$('fDep').value, car=$('fCar').value, est=$('fEst').value, q=norm($('fBuscar').value);
@@ -397,7 +426,7 @@ function render(){
   $('kDias25').textContent=fmtD(activos.reduce((a,b)=>a+(b.dias2025||0),0));
   $('kProv').textContent=fmtD(activos.reduce((a,b)=>a+(b.g2026||0),0));
   $('cnt').textContent=rows.length+' de '+activos.length;
-  renderSalidas();
+  renderSalidas(); renderPlanTabla();
   const sorted=sortRows(rows);
   $('tbody').innerHTML=sorted.map((r,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
@@ -625,6 +654,90 @@ function mostrarSalSaldo(){
   const r=selectedSalEmp(); if(!r){ box.textContent=''; return; }
   applyAcum();
   box.innerHTML=`<b>${r.nombre}</b> — se liquidará su saldo pendiente: <b>${fmtD(r.dias)}</b> días (2025: ${fmtD(r.dias2025)} · 2026: ${fmtD(r.prov)}).`;
+}
+
+// ---------- Planificación (solo días 2025) ----------
+function fetchPlanes(){
+  const cb='plan_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
+      const iCi=F('ci','cedula'), iDi=F('dias','dia'), iDe=F('desde'), iFe=F('fecha'), iNo=F('nombre'), iOp=F('opid');
+      const map={}, list=[];
+      if(iOp>=0) (resp.table.rows||[]).forEach((r,idx)=>{ const c=r.c||[]; // firma: columna OpId
+        const rawci=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(rawci); if(!k) return;
+        const dd=(iDi>=0&&c[iDi]&&c[iDi].v!=null)?Number(c[iDi].v):0;
+        const de=(iDe>=0&&c[iDe])?(c[iDe].f!=null?c[iDe].f:c[iDe].v):'';
+        const fe=(iFe>=0&&c[iFe])?(c[iFe].f!=null?c[iFe].f:c[iFe].v):'';
+        const no=(iNo>=0&&c[iNo])?String(c[iNo].v||''):'';
+        const op=(iOp>=0&&c[iOp])?String(c[iOp].v||''):'';
+        if(!map[k]) map[k]=0; map[k]+=dd;
+        list.push({ order:idx, key:k, ci:String(rawci==null?'':rawci).trim(), nombre:no, fecha:fe, dias:dd, desde:String(de||''), opId:op });
+      });
+      const lastByKey={};
+      list.forEach(x=>{ if(lastByKey[x.key]===undefined || x.order>lastByKey[x.key]) lastByKey[x.key]=x.order; });
+      list.forEach(x=>{ x.esUltimo=(x.order===lastByKey[x.key]); });
+      planMap=map; planList=list;
+    }catch(e){ planMap={}; planList=[]; }
+    renderPlanTabla(); renderPlanes(); mostrarPlanSaldo();
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Planificacion&_='+Date.now();
+  s.onerror=()=>{};
+  document.body.appendChild(s);
+}
+function planificadoDe(ci){ return planMap[ck(ci)]||0; }
+function disponiblePlan(r){ return Math.round((Math.max(0,r.dias2025)-planificadoDe(r.ci))*100)/100; } // solo 2025
+function fillPlan(){
+  const deptos=[...new Set(activosBase().map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
+  const cargos=[...new Set(activosBase().map(r=>r.cargo))].filter(x=>x&&x!=='—').sort();
+  const setOpts=(id,vals)=>{ const el=$(id); const cur=el.value; el.innerHTML='<option value="">Todos</option>'+vals.map(v=>`<option>${v}</option>`).join(''); el.value=cur; };
+  setOpts('pDep',deptos); setOpts('pCar',cargos);
+  fillPlanEmp(); renderPlanTabla();
+}
+function planFiltrados(){
+  const dep=$('pDep').value, car=$('pCar').value;
+  return activosBase().filter(r=>(!dep||r.depto===dep)&&(!car||r.cargo===car));
+}
+function fillPlanEmp(){
+  const esc=v=>String(v).replace(/"/g,'&quot;');
+  $('dlEmpP').innerHTML=planFiltrados().sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es')).map(r=>`<option value="${esc(r.nombre)} — ${r.ci}"></option>`).join('');
+  mostrarPlanSaldo();
+}
+function selectedPlanEmp(){
+  const txt=$('pEmp').value.trim(); if(!txt) return null;
+  const m=txt.match(/(\d{5,})\s*$/); if(m){ const r=empByCi(m[1]); if(r) return r; }
+  const n=norm(txt);
+  return base.find(r=>norm(r.nombre+'—'+r.ci)===n) || base.find(r=>norm(r.nombre)===n) || null;
+}
+function mostrarPlanSaldo(){
+  const box=$('pSaldo'); const r=selectedPlanEmp(); if(!r){ box.textContent=''; return; }
+  applyAcum();
+  const disp=disponiblePlan(r);
+  box.innerHTML=`<b>${r.nombre}</b> — días 2025: <b>${fmtD(r.dias2025)}</b> · ya planificado: ${fmtD(planificadoDe(r.ci))} · <b>por planificar: ${fmtD(disp)}</b> (los del 2026 no se planifican)`;
+}
+function renderPlanTabla(){
+  if(!base.length) return; applyAcum();
+  const rows=planFiltrados().sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  $('pTablaBody').innerHTML=rows.map(r=>{
+    const plan=planificadoDe(r.ci), disp=Math.round((Math.max(0,r.dias2025)-plan)*100)/100;
+    return `<tr>
+      <td style="font-family:var(--mono)">${r.ci}</td><td class="raz">${r.nombre}</td><td>${r.depto}</td><td>${r.cargo}</td>
+      <td class="num">${fmtD(r.dias2025)}</td><td class="num" style="color:var(--teal-deep)">${plan?fmtD(plan):'—'}</td>
+      <td class="num" style="font-weight:600">${fmtD(disp)}</td></tr>`;
+  }).join('');
+}
+function renderPlanes(){
+  const wrap=$('pListaWrap');
+  if(!planList.length){ if(wrap) wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  $('pCnt').textContent=planList.length;
+  const rows=planList.slice().sort((a,b)=>b.order-a.order);
+  $('pListaBody').innerHTML=rows.map(x=>`<tr${x.esUltimo?'':' style="opacity:.55"'}>
+    <td>${x.fecha||'—'}</td><td style="font-family:var(--mono)">${x.ci}</td><td class="raz">${x.nombre||'—'}</td>
+    <td class="num">${fmtD(x.dias)}</td><td>${x.desde||'—'}</td>
+    <td>${x.esUltimo?`<button class="btn ghost" data-delplan="${x.ci}" data-op="${x.opId||''}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el más reciente de este empleado">🔒 Deshacer</button>'}</td></tr>`).join('');
 }
 let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
 function fetchPeriodos(){
@@ -946,6 +1059,37 @@ $('sListaBody').addEventListener('click',async ev=>{
   catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Reactivar'; }
 });
 
+// --- Planificación ---
+$('pDep').onchange=()=>{ fillPlanEmp(); renderPlanTabla(); };
+$('pCar').onchange=()=>{ fillPlanEmp(); renderPlanTabla(); };
+$('pEmp').oninput=mostrarPlanSaldo;
+$('pEmp').onchange=mostrarPlanSaldo;
+$('pReg').onclick=async()=>{
+  const r=selectedPlanEmp(); if(!r){ alert('Elige un empleado: escribe el nombre y selecciónalo.'); return; }
+  const n=Number($('pDias').value||0);
+  if(!(n>0)){ alert('Pon los días a planificar.'); return; }
+  applyAcum();
+  const disp=disponiblePlan(r);
+  if(n>disp+0.001){ alert('Solo se planifican días del 2025. '+r.nombre+' tiene '+fmtD(disp)+' por planificar (los del 2026 son para 2027).'); return; }
+  const desde=$('pDesde').value.trim();
+  const b=$('pReg'); b.disabled=true; b.textContent='Planificando…';
+  const opId='pl_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+  try{ await api('planificar',{ci:r.ci,nombre:r.nombre,dias:n,desde:desde,opId:opId});
+    $('pDias').value=''; $('pDesde').value='';
+    $('pStatus').classList.remove('err');
+    $('pStatus').textContent='✓ Planificados '+fmtD(n)+' días de '+r.nombre+(desde?' desde '+desde:'')+'.';
+    fetchPlanes();
+    b.disabled=false; b.textContent='Planificar';
+  }catch(err){ alert('No se pudo: '+err.message); b.disabled=false; b.textContent='Planificar'; }
+};
+$('pListaBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('[data-delplan]'); if(!btn) return;
+  if(!confirm('¿Deshacer esta planificación? Los días vuelven a estar disponibles.')) return;
+  btn.disabled=true; btn.textContent='…';
+  try{ await api('borrarUltimoPlan',{ci:btn.dataset.delplan,opId:btn.dataset.op}); fetchPlanes(); }
+  catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Deshacer'; }
+});
+
 // --- Pestañas ---
 document.querySelectorAll('#tabs button').forEach(b=>{ b.onclick=()=>{
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
@@ -958,6 +1102,7 @@ fetchPeriodos();
 fetchAcumulado();
 fetchTomados();
 fetchLiquidados();
+fetchPlanes();
 fetchBase();
 </script>
 </body>
