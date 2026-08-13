@@ -153,6 +153,15 @@
     </div>
   </div>
 
+  <div class="card" id="exclCard" style="display:none">
+    <h2>🚫 Excluidos — no se provisionan <span class="pill" id="exclCnt"></span></h2>
+    <p class="sub" style="margin:0 0 10px">Pasantes u otros que no entran en la provisión. Se saltan automáticamente al subir la planilla. Puedes quitar la exclusión si algún día pasan a fijos.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Cédula</th><th>Nombre</th><th>Motivo</th><th></th></tr></thead>
+      <tbody id="exclBody"></tbody>
+    </table></div>
+  </div>
+
   <div class="soon">
     <div class="card"><h2>➖ Registrar días tomados <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Descontar del saldo los días que cada empleado ya tomó.</p></div>
     <div class="card"><h2>🗓️ Planificación <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Programar vacaciones futuras.</p></div>
@@ -282,22 +291,38 @@ document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=
 const VAC_API_URL='https://script.google.com/macros/s/AKfycbyyq1yWQJY1KZx6leqS44eNTcHpHMozxqsbAtNkwpw_dFdxoC9WhvyJlB2odXqQlR6g/exec';
 const VAC_API_KEY='VAC-CONTAB-2026';
 let iessData=null;
-let excluidos=new Set(); // cédulas que NO se provisionan (pasantes u otros), leídas de la pestaña "Excluidos"
+let excluidos=new Set();   // claves de cédula que NO se provisionan (pasantes u otros)
+let excluidosList=[];      // detalle {ci,nombre,motivo} para mostrar y poder quitar
 function fetchExcluidos(){
   const cb='exc_cb_'+Math.floor(Math.random()*1e9);
   window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
     try{
       const cols=(resp.table.cols||[]).map(c=>norm(c.label));
-      let iCi=-1; for(let i=0;i<cols.length;i++){ if(cols[i].includes('ci')||cols[i].includes('cedula')){ iCi=i; break; } }
-      const set=new Set();
-      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[]; const v=(iCi>=0&&c[iCi])?c[iCi].v:null; const k=ck(v); if(k) set.add(k); });
-      excluidos=set;
+      const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
+      const iCi=F('ci','cedula'), iNom=F('nombre'), iMot=F('motivo');
+      const set=new Set(), list=[];
+      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+        const rawv=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null;
+        const k=ck(rawv); if(!k) return;
+        set.add(k);
+        list.push({ ci:String(rawv==null?'':rawv).trim(), nombre:(iNom>=0&&c[iNom])?String(c[iNom].v||''):'', motivo:(iMot>=0&&c[iMot])?String(c[iMot].v||''):'' });
+      });
+      excluidos=set; excluidosList=list; renderExcluidos();
     }catch(e){ /* pestaña vacía o inexistente */ }
   };
   const s=document.createElement('script');
   s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Excluidos&_='+Date.now();
   s.onerror=()=>{ /* la pestaña "Excluidos" aún no existe: no pasa nada */ };
   document.body.appendChild(s);
+}
+function renderExcluidos(){
+  const card=$('exclCard');
+  if(!excluidosList.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  $('exclCnt').textContent=excluidosList.length;
+  $('exclBody').innerHTML=excluidosList.map(e=>`<tr>
+    <td style="font-family:var(--mono)">${e.ci}</td><td class="raz">${e.nombre||'—'}</td><td>${e.motivo||'—'}</td>
+    <td><button class="btn ghost" data-unexcl="${e.ci}">Quitar</button></td></tr>`).join('');
 }
 const ck=s=>String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); // clave de cruce: dígitos SIN ceros a la izquierda (el Sheet guarda CI como número y pierde el 0 inicial)
 // Restaura la cédula a 10 dígitos (el Sheet guarda CI como número y borra el 0 inicial; toda cédula EC tiene 10).
@@ -420,10 +445,20 @@ $('iessNewBody').addEventListener('click',async ev=>{
     if(!confirm('¿Excluir a '+n.nombre+'? No se le provisionará (pasante) y no volverá a aparecer.')) return;
     exBtn.disabled=true; exBtn.textContent='…';
     try{ await api('excluirEmpleado',{ci:n.ci,nombre:n.nombre,motivo:'Pasante'});
-      excluidos.add(ck(n.ci)); exBtn.textContent='✓ Excluido'; exBtn.closest('tr').style.opacity=.5;
+      excluidos.add(ck(n.ci)); excluidosList.push({ci:n.ci,nombre:n.nombre,motivo:'Pasante'}); renderExcluidos();
+      exBtn.textContent='✓ Excluido'; exBtn.closest('tr').style.opacity=.5;
       const ab=exBtn.closest('tr').querySelector('[data-add]'); if(ab) ab.disabled=true;
     }catch(err){ alert('No se pudo excluir: '+err.message); exBtn.disabled=false; exBtn.textContent='Excluir'; }
   }
+});
+$('exclBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('[data-unexcl]'); if(!btn) return;
+  const ci=btn.dataset.unexcl;
+  if(!confirm('¿Quitar de excluidos? Volverá a aparecer para provisionar la próxima vez que subas la planilla.')) return;
+  btn.disabled=true; btn.textContent='…';
+  try{ await api('quitarExclusion',{ci});
+    excluidos.delete(ck(ci)); excluidosList=excluidosList.filter(e=>ck(e.ci)!==ck(ci)); renderExcluidos();
+  }catch(err){ alert('No se pudo quitar: '+err.message); btn.disabled=false; btn.textContent='Quitar'; }
 });
 $('iessBajaBody').addEventListener('click',async ev=>{
   const btn=ev.target.closest('[data-baja]'); if(!btn) return;
