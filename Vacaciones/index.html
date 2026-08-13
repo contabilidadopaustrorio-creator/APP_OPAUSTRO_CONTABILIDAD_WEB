@@ -198,6 +198,27 @@
     </div>
   </div>
 
+  <div class="card" id="salCard">
+    <h2>🚪 Salida de empleado (inactivar + liquidar)</h2>
+    <p class="sub" style="margin:0 0 10px">Da salida a quien dejó la empresa: se <b>quita del reporte</b> principal, se marca <b>INACTIVO</b> y se <b>liquida</b> su saldo (queda el registro de cuánto tenía). Es reversible.</p>
+    <div class="filters" style="margin-bottom:10px">
+      <div class="fg"><label>Departamento</label><select id="sDep"><option value="">Todos</option></select></div>
+      <div class="fg" style="flex:1;min-width:240px"><label>Empleado</label><input type="search" id="sEmp" list="dlEmpS" placeholder="Escribe el nombre o elige…" autocomplete="off"><datalist id="dlEmpS"></datalist></div>
+      <div class="spacer"></div>
+      <button class="btn" id="sReg">Dar salida</button>
+    </div>
+    <div id="sSaldo" class="sub" style="margin:0 0 6px;min-height:16px"></div>
+    <div class="status" id="sStatus" style="margin:0"></div>
+
+    <div id="sListaWrap" style="display:none">
+      <div class="subhead">📤 Salidas / inactivos <span class="pill" id="sCnt"></span></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Cédula</th><th>Nombre</th><th>Departamento</th><th>Cargo</th><th class="num">Liquidado</th><th></th></tr></thead>
+        <tbody id="sListaBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
   <div class="soon">
     <div class="card"><h2>🗓️ Planificación <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Programar vacaciones futuras.</p></div>
   </div>
@@ -216,6 +237,7 @@ let base=[];
 let acumMap={}; // ci → {p2025,p2026} provisiones acumuladas subidas (pestaña "Acumulado 2026")
 let tomadosMap={}; // ci → {t2025,t2026} días de vacaciones ya tomados (pestaña "Dias Tomados")
 let tomados=[];    // lista de registros de días tomados
+let liquidadosMap={}; // ci → {l2025,l2026,total} liquidaciones al salir (pestaña "Liquidaciones")
 let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Parser único de fechas: entiende dd/mm/aaaa y aaaa-mm-dd (los empleados agregados quedan en aaaa-mm-dd).
@@ -311,15 +333,17 @@ function buildFilters(){
   const esc=v=>String(v).replace(/"/g,'&quot;');
   if($('dlCargos')) $('dlCargos').innerHTML=cargos.map(v=>`<option value="${esc(v)}"></option>`).join('');
   if($('dlDeptos')) $('dlDeptos').innerHTML=deptos.map(v=>`<option value="${esc(v)}"></option>`).join('');
-  fillTom();
+  fillTom(); fillSal();
 }
 function filtered(){
   const dep=$('fDep').value, car=$('fCar').value, est=$('fEst').value, q=norm($('fBuscar').value);
   return base.filter(r=>{
+    if(norm(r.estado).includes('inactivo')) return false; // los que salieron van aparte, no en el reporte
     if(dep&&r.depto!==dep)return false; if(car&&r.cargo!==car)return false; if(est&&r.estado!==est)return false;
     if(q&&!norm(r.nombre+' '+r.ci).includes(q))return false; return true;
   });
 }
+function activosBase(){ return base.filter(r=>!norm(r.estado).includes('inactivo')); }
 // Suma a cada empleado las provisiones subidas: Días 2026 += acum 2026, Días 2025 += acum 2025.
 function applyAcum(){
   base.forEach(r=>{
@@ -339,11 +363,12 @@ function render(){
   applyAcum();
   $('dash').style.display='block';
   const rows=filtered();
-  const activos=base.filter(r=>norm(r.estado).includes('activo'));
-  $('kEmp').textContent=activos.length||base.length;
-  $('kDias').textContent=fmtD(base.reduce((a,b)=>a+b.dias,0));
-  $('kProv').textContent=fmtD(base.reduce((a,b)=>a+(b.g2026||0),0));
-  $('cnt').textContent=rows.length+' de '+base.length;
+  const activos=activosBase();
+  $('kEmp').textContent=activos.length;
+  $('kDias').textContent=fmtD(activos.reduce((a,b)=>a+b.dias,0));
+  $('kProv').textContent=fmtD(activos.reduce((a,b)=>a+(b.g2026||0),0));
+  $('cnt').textContent=rows.length+' de '+activos.length;
+  renderSalidas();
   const sorted=sortRows(rows);
   $('tbody').innerHTML=sorted.map((r,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
@@ -504,6 +529,73 @@ function mostrarSaldo(){
   const r=selectedEmp(); if(!r){ box.textContent=''; return; }
   applyAcum();
   box.innerHTML=`Saldo de <b>${r.nombre}</b>: total <b>${fmtD(r.dias)}</b> días · disponible 2025: <b>${fmtD(r.dias2025)}</b> · 2026 (anticipo): ${fmtD(r.prov)}${r.tomados?` · ya tomó ${fmtD(r.tomados)}`:''}`;
+}
+
+// ---------- Salida de empleado ----------
+function fetchLiquidados(){
+  const cb='liq_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
+      const iCi=F('ci','cedula'), i25=F('dias2025'), i26=F('dias2026'), iTo=F('total');
+      const m={};
+      if(iCi>=0 && (i25>=0||iTo>=0)) (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+        const cc=(c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(cc); if(!k) return;
+        const l25=(i25>=0&&c[i25]&&c[i25].v!=null)?Number(c[i25].v):0;
+        const l26=(i26>=0&&c[i26]&&c[i26].v!=null)?Number(c[i26].v):0;
+        const tot=(iTo>=0&&c[iTo]&&c[iTo].v!=null)?Number(c[iTo].v):(l25+l26);
+        m[k]={l2025:l25,l2026:l26,total:tot};
+      });
+      liquidadosMap=m;
+    }catch(e){ liquidadosMap={}; }
+    renderSalidas();
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Liquidaciones&_='+Date.now();
+  s.onerror=()=>{};
+  document.body.appendChild(s);
+}
+function renderSalidas(){
+  const wrap=$('sListaWrap');
+  const inact=base.filter(r=>norm(r.estado).includes('inactivo'));
+  if(!inact.length){ if(wrap) wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  $('sCnt').textContent=inact.length;
+  inact.sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  $('sListaBody').innerHTML=inact.map(r=>{
+    const l=liquidadosMap[ck(r.ci)];
+    return `<tr>
+      <td style="font-family:var(--mono)">${r.ci}</td><td class="raz">${r.nombre}</td><td>${r.depto}</td><td>${r.cargo}</td>
+      <td class="num">${l?fmtD(l.total):'—'}</td>
+      <td><button class="btn ghost" data-react="${r.ci}">Reactivar</button></td></tr>`;
+  }).join('');
+}
+function fillSal(){
+  const deptos=[...new Set(activosBase().map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
+  const el=$('sDep'); const cur=el.value;
+  el.innerHTML='<option value="">Todos</option>'+deptos.map(v=>`<option>${v}</option>`).join(''); el.value=cur;
+  fillSalEmp();
+}
+function fillSalEmp(){
+  const dep=$('sDep').value;
+  const emps=activosBase().filter(r=>(!dep||r.depto===dep)).sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  const esc=v=>String(v).replace(/"/g,'&quot;');
+  $('dlEmpS').innerHTML=emps.map(r=>`<option value="${esc(r.nombre)} — ${r.ci}"></option>`).join('');
+  mostrarSalSaldo();
+}
+function selectedSalEmp(){
+  const txt=$('sEmp').value.trim(); if(!txt) return null;
+  const m=txt.match(/(\d{5,})\s*$/);
+  if(m){ const r=empByCi(m[1]); if(r) return r; }
+  const n=norm(txt);
+  return base.find(r=>norm(r.nombre+'—'+r.ci)===n) || base.find(r=>norm(r.nombre)===n) || null;
+}
+function mostrarSalSaldo(){
+  const box=$('sSaldo');
+  const r=selectedSalEmp(); if(!r){ box.textContent=''; return; }
+  applyAcum();
+  box.innerHTML=`<b>${r.nombre}</b> — se liquidará su saldo pendiente: <b>${fmtD(r.dias)}</b> días (2025: ${fmtD(r.dias2025)} · 2026: ${fmtD(r.prov)}).`;
 }
 let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
 function fetchPeriodos(){
@@ -798,11 +890,39 @@ $('tRegBody').addEventListener('click',async ev=>{
   catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Deshacer'; }
 });
 
+// --- Salida de empleado ---
+$('sDep').onchange=fillSalEmp;
+$('sEmp').oninput=mostrarSalSaldo;
+$('sEmp').onchange=mostrarSalSaldo;
+$('sReg').onclick=async()=>{
+  const r=selectedSalEmp(); if(!r){ alert('Elige un empleado: escribe el nombre y selecciónalo de la lista.'); return; }
+  applyAcum();
+  const l2025=Math.max(0,r.dias2025), l2026=Math.max(0,r.prov);
+  if(!confirm('¿Dar salida a '+r.nombre+'?\n\nSe quita del reporte, se marca INACTIVO y se liquida su saldo de '+fmtD(r.dias)+' días ('+fmtD(l2025)+' de 2025, '+fmtD(l2026)+' de 2026).\n\nEs reversible (puedes reactivarlo).')) return;
+  const b=$('sReg'); b.disabled=true; b.textContent='Procesando…';
+  const opId='sal_'+Date.now()+'_'+Math.floor(Math.random()*1e6);
+  try{ await api('darSalida',{ci:r.ci,nombre:r.nombre,l2025:l2025,l2026:l2026,liquidar:true,opId:opId});
+    $('sEmp').value='';
+    $('sStatus').classList.remove('err');
+    $('sStatus').textContent='✓ Salida registrada: '+r.nombre+' (liquidado '+fmtD(l2025+l2026)+' días). Ya no aparece en el reporte.';
+    fetchLiquidados(); fetchBase();
+    b.disabled=false; b.textContent='Dar salida';
+  }catch(err){ alert('No se pudo: '+err.message); b.disabled=false; b.textContent='Dar salida'; }
+};
+$('sListaBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('[data-react]'); if(!btn) return;
+  if(!confirm('¿Reactivar este empleado? Vuelve al reporte y se quita su liquidación.')) return;
+  btn.disabled=true; btn.textContent='…';
+  try{ await api('reactivarEmpleado',{ci:btn.dataset.react}); fetchLiquidados(); fetchBase(); }
+  catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Reactivar'; }
+});
+
 warmupApi();
 fetchExcluidos();
 fetchPeriodos();
 fetchAcumulado();
 fetchTomados();
+fetchLiquidados();
 fetchBase();
 </script>
 </body>
