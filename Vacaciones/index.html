@@ -57,6 +57,12 @@
   footer{margin-top:26px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint)}
   .filters input[type=file]{font-size:12.5px;padding:6px;border:1px solid var(--line2);border-radius:8px;background:#fff}
   .subhead{font-size:14px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+  .tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:2px solid var(--line2);margin-bottom:18px}
+  .tabs button{font:inherit;font-size:13.5px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:8px 8px 0 0}
+  .tabs button:hover{color:var(--teal);background:#fbfcfc}
+  .tabs button.on{color:var(--teal-deep);border-bottom-color:var(--teal)}
+  .tab-panel{display:none}
+  .tab-panel.on{display:block}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -72,6 +78,15 @@
 
   <div class="status" id="status">Cargando nómina…</div>
 
+  <div class="tabs" id="tabs">
+    <button data-tab="nomina" class="on">📊 Nómina</button>
+    <button data-tab="iess">📆 Provisión IESS</button>
+    <button data-tab="tomados">➖ Días tomados</button>
+    <button data-tab="salidas">🚪 Salidas</button>
+    <button data-tab="plan">🗓️ Planificación</button>
+  </div>
+
+  <div class="tab-panel on" data-panel="nomina">
   <div id="dash" style="display:none">
     <div class="kpis">
       <div class="kpi"><div class="lab">Empleados (activos)</div><div class="big" id="kEmp">0</div></div>
@@ -114,7 +129,9 @@
       <div class="empty" id="tblEmpty" style="display:none">Sin coincidencias.</div>
     </div>
   </div>
+  </div><!-- /panel nomina -->
 
+  <div class="tab-panel" data-panel="iess">
   <div class="card" id="iessCard">
     <h2>📆 Provisión mensual (IESS)</h2>
     <p class="sub" style="margin:0 0 12px">Sube la planilla del IESS del mes. La cruzo por cédula con tu base: calculo la provisión en <b>días</b>, detecto <b>empleados nuevos</b> y <b>posibles bajas</b>.</p>
@@ -175,6 +192,9 @@
     </table></div>
   </div>
 
+  </div><!-- /panel iess -->
+
+  <div class="tab-panel" data-panel="tomados">
   <div class="card" id="tomCard">
     <h2>➖ Registrar días tomados</h2>
     <p class="sub" style="margin:0 0 10px">Elige un empleado, mira su saldo y registra los días que tomó. Se descuentan <b>primero del 2025</b>; si no alcanza, del <b>2026</b> (con aviso de anticipo, porque esos días son para 2027).</p>
@@ -198,6 +218,9 @@
     </div>
   </div>
 
+  </div><!-- /panel tomados -->
+
+  <div class="tab-panel" data-panel="salidas">
   <div class="card" id="salCard">
     <h2>🚪 Salida de empleado (inactivar + liquidar)</h2>
     <p class="sub" style="margin:0 0 10px">Da salida a quien dejó la empresa: se <b>quita del reporte</b> principal, se marca <b>INACTIVO</b> y se <b>liquida</b> su saldo (queda el registro de cuánto tenía). Es reversible.</p>
@@ -219,9 +242,13 @@
     </div>
   </div>
 
+  </div><!-- /panel salidas -->
+
+  <div class="tab-panel" data-panel="plan">
   <div class="soon">
     <div class="card"><h2>🗓️ Planificación <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Programar vacaciones futuras.</p></div>
   </div>
+  </div><!-- /panel plan -->
 
   <footer>La nómina se lee en vivo desde el Sheet base. Al actualizar el Sheet y pulsar «Recargar», se refleja aquí.</footer>
 </div>
@@ -916,6 +943,12 @@ $('sListaBody').addEventListener('click',async ev=>{
   try{ await api('reactivarEmpleado',{ci:btn.dataset.react}); fetchLiquidados(); fetchBase(); }
   catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Reactivar'; }
 });
+
+// --- Pestañas ---
+document.querySelectorAll('#tabs button').forEach(b=>{ b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('on',p.dataset.panel===b.dataset.tab));
+};});
 
 warmupApi();
 fetchExcluidos();
