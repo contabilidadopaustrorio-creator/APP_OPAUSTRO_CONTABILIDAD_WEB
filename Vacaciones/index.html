@@ -338,9 +338,16 @@ function normPeriodo(v){
 }
 async function api(action,payload){
   if(!VAC_API_URL) throw new Error('Backend no configurado todavía. Despliega el Apps Script de Vacaciones y pega su /exec en VAC_API_URL.');
-  const res=await fetch(VAC_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({apiKey:VAC_API_KEY,action},payload))});
-  const txt=await res.text(); let j; try{ j=JSON.parse(txt); }catch(_){ throw new Error('Respuesta no válida del backend'); }
-  if(!j.ok) throw new Error(j.error||'error'); return j;
+  const body=JSON.stringify(Object.assign({apiKey:VAC_API_KEY,action},payload));
+  // Reintenta una vez: Apps Script en frío puede devolver una página intermedia (no-JSON) en la 1ª llamada.
+  for(let intento=0;intento<2;intento++){
+    const res=await fetch(VAC_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+    const txt=await res.text();
+    let j=null; try{ j=JSON.parse(txt); }catch(_){ j=null; }
+    if(j){ if(!j.ok) throw new Error(j.error||'error'); return j; }
+    if(intento===0) await new Promise(r=>setTimeout(r,1500));
+  }
+  throw new Error('Respuesta no válida del backend. Reintenta en unos segundos.');
 }
 
 $('iessProc').onclick=()=>{
