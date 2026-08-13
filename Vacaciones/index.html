@@ -86,6 +86,7 @@
       <div class="fg"><label>Buscar</label><input type="search" id="fBuscar" placeholder="Nombre o cédula…"></div>
       <div class="spacer"></div>
       <button class="btn ghost" id="btnReset">Limpiar filtros</button>
+      <button class="btn ghost" id="btnExport">⬇ Excel</button>
       <button class="btn" id="btnReload">↻ Recargar del Sheet</button>
     </div>
 
@@ -323,6 +324,24 @@ function render(){
 $('fBuscar').oninput=render;
 $('btnReset').onclick=()=>{ $('fDep').value='';$('fCar').value='';$('fEst').value='';$('fBuscar').value=''; render(); };
 $('btnReload').onclick=fetchBase;
+function exportarXLSX(){
+  if(typeof XLSX==='undefined'){ alert('No cargó la librería de Excel (revisa tu conexión).'); return; }
+  applyAcum();
+  const rows=sortRows(filtered());
+  const data=[['Cédula','Nombre','Departamento','Cargo','Ingreso','Días/año','Total días','Días 2025','Días 2026']];
+  rows.forEach(r=>data.push([r.ci, r.nombre, r.depto, r.cargo, r.fecha, r.derecho, r.dias, r.dias2025, r.prov]));
+  data.push(['','','','','TOTAL ('+rows.length+')','',
+    Math.round(rows.reduce((a,b)=>a+b.dias,0)*100)/100,
+    Math.round(rows.reduce((a,b)=>a+b.dias2025,0)*100)/100,
+    Math.round(rows.reduce((a,b)=>a+b.prov,0)*100)/100]);
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:12},{wch:32},{wch:16},{wch:22},{wch:11},{wch:9},{wch:11},{wch:11},{wch:11}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vacaciones');
+  const d=new Date(), p=n=>('0'+n).slice(-2);
+  XLSX.writeFile(wb, 'vacaciones_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.xlsx');
+}
+$('btnExport').onclick=exportarXLSX;
 document.querySelectorAll('th.sortable').forEach(th=>{ th.onclick=()=>{ const k=th.dataset.k; if(sort.key===k) sort.dir*=-1; else { sort.key=k; sort.dir=(k==='dias'||k==='dias2025'||k==='prov')?-1:1; } render(); }; });
 
 /* ================= PLANILLA IESS ================= */
