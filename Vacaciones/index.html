@@ -192,7 +192,17 @@ let base=[];
 let acumMap={}; // ci → {p2025,p2026} provisiones acumuladas subidas (pestaña "Acumulado 2026")
 let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
-function parseFecha(f){ const m=String(f).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); if(!m)return 0; let y=+m[3]; if(y<100)y+=2000; return y*10000+(+m[2])*100+(+m[1]); }
+// Parser único de fechas: entiende dd/mm/aaaa y aaaa-mm-dd (los empleados agregados quedan en aaaa-mm-dd).
+function parseDMY(f){
+  const s=String(f==null?'':f).trim();
+  let m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/); // aaaa-mm-dd
+  if(m) return { dd:+m[3], mm:+m[2], yy:+m[1] };
+  m=s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);    // dd/mm/aaaa
+  if(m){ let yy=+m[3]; if(yy<100) yy+=2000; return { dd:+m[1], mm:+m[2], yy:yy }; }
+  return null;
+}
+function fmtDMY(f){ const p=parseDMY(f); if(!p) return String(f||''); return ('0'+p.dd).slice(-2)+'/'+('0'+p.mm).slice(-2)+'/'+p.yy; }
+function parseFecha(f){ const p=parseDMY(f); return p ? p.yy*10000+p.mm*100+p.dd : 0; }
 function sortRows(rows){
   if(!sort.key) return rows;
   const k=sort.key, d=sort.dir;
@@ -206,18 +216,17 @@ function sortRows(rows){
 const CUT={y:2026,m:6,d:30};
 // Derecho anual de vacaciones: 15 días; +1 por cada año que pase de 5 (máx 30, Código de Trabajo).
 function derechoAnual(fechaStr){
-  const m=String(fechaStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if(!m) return 15;
-  let yy=+m[3]; if(yy<100) yy+=2000;
-  const anios = 2026 - yy; // años cumplidos al aniversario 2026
+  const p=parseDMY(fechaStr);
+  if(!p) return 15;
+  const anios = 2026 - p.yy; // años cumplidos al aniversario 2026
   return 15 + Math.min(15, Math.max(0, anios - 5));
 }
 // Días de vacación provisionados en el ciclo actual (desde el último aniversario <= corte),
 // a 15 días/año, base comercial 30/360, prorrateando el día de ingreso.
 function provision2026(fechaStr){
-  const m=String(fechaStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if(!m) return 0;
-  let dd=+m[1], mm=+m[2], yy=+m[3]; if(yy<100) yy+=2000;
+  const p=parseDMY(fechaStr);
+  if(!p) return 0;
+  let dd=p.dd, mm=p.mm, yy=p.yy;
   const cutNum=CUT.y*10000+CUT.m*100+CUT.d;
   const ingNum=yy*10000+mm*100+dd;
   // El ciclo 2026 empieza en el ANIVERSARIO de 2026 (mismo mes/día).
@@ -415,12 +424,11 @@ function provisionMes(fechaStr,diasIESS){ return Math.round(derechoAnual(fechaSt
 // Si el período (YYYY-MM) es anterior al aniversario 2026 del empleado → todavía cierra el ciclo 2025.
 // Si es igual o posterior → ya es ciclo 2026. (Misma lógica que la columna Días 2026 de la nómina.)
 function cicloDelPeriodo(fechaStr,periodo){
-  const m=String(fechaStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  const p=parseDMY(fechaStr);
   const pm=String(periodo).match(/(\d{4})-(\d{1,2})/);
-  if(!m||!pm) return 2026;
-  const mm=+m[2];                      // mes del aniversario
+  if(!p||!pm) return 2026;
   const perNum=(+pm[1])*100+(+pm[2]);  // período AAAAMM
-  const anivNum=2026*100+mm;           // aniversario 2026 AAAAMM
+  const anivNum=2026*100+p.mm;         // aniversario 2026 AAAAMM
   return perNum>=anivNum ? 2026 : 2025;
 }
 function normPeriodo(v){
@@ -543,8 +551,9 @@ $('iessNewBody').addEventListener('click',async ev=>{
     const i=+addBtn.dataset.add, n=iessData.nuevos[i];
     const fecha=$('nf_'+i).value.trim(), cargo=$('nc_'+i).value.trim(), depto=$('nd_'+i).value.trim();
     if(!fecha||!cargo){ alert('Pon al menos fecha de ingreso y cargo.'); return; }
+    if(!parseDMY(fecha)){ alert('Fecha inválida. Usa dd/mm/aaaa (ej. 05/07/2026).'); return; }
     addBtn.disabled=true; addBtn.textContent='…';
-    try{ await api('agregarEmpleado',{ci:n.ci,nombre:n.nombre,fechaIngreso:fecha,cargo,departamento:depto});
+    try{ await api('agregarEmpleado',{ci:n.ci,nombre:n.nombre,fechaIngreso:fmtDMY(fecha),cargo,departamento:depto});
       addBtn.textContent='✓ Agregado'; addBtn.closest('tr').style.opacity=.5;
       const eb=addBtn.closest('tr').querySelector('[data-excl]'); if(eb) eb.disabled=true;
     }catch(err){ alert('No se pudo agregar: '+err.message); addBtn.disabled=false; addBtn.textContent='Agregar'; }
