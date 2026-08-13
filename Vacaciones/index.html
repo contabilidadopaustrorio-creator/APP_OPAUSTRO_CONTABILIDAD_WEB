@@ -23,7 +23,7 @@
   .stamp b{display:block;font-size:13px;color:var(--teal-deep)}
   .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:16px}
   .card h2{margin:0 0 10px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;box-shadow:var(--shadow);position:relative;overflow:hidden}
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--teal)}
   .kpi .lab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--faint);font-weight:600}
@@ -91,6 +91,7 @@
     <div class="kpis">
       <div class="kpi"><div class="lab">Empleados (activos)</div><div class="big" id="kEmp">0</div></div>
       <div class="kpi"><div class="lab">Días pendientes (total)</div><div class="big" id="kDias">0</div></div>
+      <div class="kpi"><div class="lab">Días pendientes 2025</div><div class="big" id="kDias25">0</div></div>
       <div class="kpi"><div class="lab">Días provisión 2026 (total)</div><div class="big" id="kProv">0</div></div>
     </div>
 
@@ -393,6 +394,7 @@ function render(){
   const activos=activosBase();
   $('kEmp').textContent=activos.length;
   $('kDias').textContent=fmtD(activos.reduce((a,b)=>a+b.dias,0));
+  $('kDias25').textContent=fmtD(activos.reduce((a,b)=>a+(b.dias2025||0),0));
   $('kProv').textContent=fmtD(activos.reduce((a,b)=>a+(b.g2026||0),0));
   $('cnt').textContent=rows.length+' de '+activos.length;
   renderSalidas();
