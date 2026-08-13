@@ -128,7 +128,7 @@
     <div id="iessResult" style="display:none">
       <div class="subhead">✅ Provisión del mes <span class="pill" id="iessMatchCnt"></span></div>
       <div class="tablewrap"><table>
-        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th><th class="num">Días IESS</th><th class="num">Días/año</th><th class="num">Días provisión mes</th><th class="num">Suma a</th></tr></thead>
+        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th><th class="num">Días IESS</th><th class="num">Prov → 2025</th><th class="num">Prov → 2026</th><th class="num">Total mes</th></tr></thead>
         <tbody id="iessMatchBody"></tbody>
         <tfoot id="iessMatchFoot"></tfoot>
       </table></div>
@@ -216,12 +216,15 @@ function sortRows(rows){
 // Corte del cálculo de provisión (junio 2026)
 const CUT={y:2026,m:6,d:30};
 // Derecho anual de vacaciones: 15 días; +1 por cada año que pase de 5 (máx 30, Código de Trabajo).
-function derechoAnual(fechaStr){
-  const p=parseDMY(fechaStr);
-  if(!p) return 15;
-  const anios = 2026 - p.yy; // años cumplidos al aniversario 2026
-  return 15 + Math.min(15, Math.max(0, anios - 5));
+// Derecho del ciclo que ARRANCA en el aniversario del año 'cicloYear'.
+// 15 base + 1 por cada año de servicio sobre 5 (máx +15). El ciclo que inicia en
+// cicloYear es un nuevo año de servicio → (cicloYear - añoIngreso) - 4.
+function derechoCiclo(fechaStr, cicloYear){
+  const p=parseDMY(fechaStr); if(!p) return 15;
+  return 15 + Math.min(15, Math.max(0, (cicloYear - p.yy) - 4));
 }
+// Derecho "base" = el del ciclo que cierra en 2026 (mismo valor que antes, p.ej. MENA 18).
+function derechoAnual(fechaStr){ return derechoCiclo(fechaStr, 2025); }
 // Días de vacación provisionados en el ciclo actual (desde el último aniversario <= corte),
 // a 15 días/año, base comercial 30/360, prorrateando el día de ingreso.
 function provision2026(fechaStr){
@@ -240,7 +243,7 @@ function provision2026(fechaStr){
   const fullMonths = CUT.m - mm; // meses completos posteriores hasta junio
   let dias = startDays + fullMonths*30;
   if(dias<0) dias=0;
-  const derecho = derechoAnual(fechaStr); // 15 + antigüedad
+  const derecho = derechoCiclo(fechaStr, 2026); // provisión base del ciclo 2026
   return Math.round(dias * derecho / 360 * 100)/100;
 }
 
@@ -267,7 +270,7 @@ function parseGviz(resp){
     const diasBase=toNum(cellV(c,iDias)), provBase=provision2026(fecha);
     return { ci:padCI(cellV(c,iCI)), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
       depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha,
-      diasBase, provBase, derecho:derechoAnual(fecha),
+      diasBase, provBase, derecho:derechoCiclo(fecha,2026),
       // valores mostrados (se recalculan con el acumulado de planillas subidas):
       dias:diasBase, prov:provBase, dias2025:Math.round((diasBase-provBase)*100)/100 };
   }).filter(r=>r.nombre);
@@ -438,7 +441,25 @@ const ck=s=>String(s==null?'':s).replace(/\D/g,'').replace(/^0+/,''); // clave d
 const padCI=s=>{ const d=String(s==null?'':s).replace(/\D/g,''); return d.length===9 ? '0'+d : d; };
 function iessStatus(t,err){ const s=$('iessStatus'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Provisión de días del MES = derecho anual * (días trabajados/360)
-function provisionMes(fechaStr,diasIESS){ return Math.round(derechoAnual(fechaStr)*(Number(diasIESS)||0)/360*100)/100; }
+// Provisión del mes partida por el aniversario:
+//  - días hasta el aniversario → ciclo 2025 (tasa previa)
+//  - días desde el aniversario → ciclo 2026 (tasa nueva, +1 si ya pasa de 5 años)
+// En meses que no son el del aniversario, todo cae a un solo ciclo según corresponda.
+function provisionMesSplit(fechaStr, diasIESS, periodo){
+  const p=parseDMY(fechaStr);
+  const dias=Number(diasIESS)||0;
+  const d25=derechoCiclo(fechaStr,2025), d26=derechoCiclo(fechaStr,2026);
+  const pm=String(periodo).match(/(\d{4})-(\d{1,2})/);
+  const r2=x=>Math.round(x*100)/100;
+  if(!p||!pm) return { p2025:0, p2026:r2(d26*dias/360) };
+  const anivNum=2026*100+p.mm, perNum=(+pm[1])*100+(+pm[2]);
+  if(perNum < anivNum) return { p2025:r2(d25*dias/360), p2026:0 };   // aún no llega al aniversario
+  if(perNum > anivNum) return { p2025:0, p2026:r2(d26*dias/360) };   // ya pasó el aniversario
+  // Mes del aniversario: se parte en el día de ingreso (p.dd)
+  const antes=Math.min(dias, p.dd);        // días 1..dd → 2025 (tasa previa)
+  const despues=Math.max(0, dias-antes);   // días dd+1..fin → 2026 (tasa nueva)
+  return { p2025:r2(d25*antes/360), p2026:r2(d26*despues/360) };
+}
 // ¿A qué ciclo pertenece la provisión de este período?
 // Si el período (YYYY-MM) es anterior al aniversario 2026 del empleado → todavía cierra el ciclo 2025.
 // Si es igual o posterior → ya es ciclo 2026. (Misma lógica que la columna Días 2026 de la nómina.)
@@ -524,7 +545,11 @@ function procesarPlanilla(buf){
     const sueldo=idx.sue>=0?toNum(r[idx.sue]):0;
     const dias=(idx.dia>=0?toNum(r[idx.dia]):0)||30;
     const emp=baseMap[key];
-    if(emp) matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias), ciclo:cicloDelPeriodo(emp.fecha,per) });
+    if(emp){
+      const sp=provisionMesSplit(emp.fecha, dias, per);
+      matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias,
+        prov2025:sp.p2025, prov2026:sp.p2026, provision:Math.round((sp.p2025+sp.p2026)*100)/100 });
+    }
     else nuevos.push({ ci:rawCi, nombre, sueldo, dias });
   });
   const bajas=base.filter(e=>norm(e.estado).includes('activo') && !planillaCis.has(ck(e.ci)) && !excluidos.has(ck(e.ci)));
@@ -539,11 +564,12 @@ function renderIess(){
   $('iessMatchCnt').textContent=d.matched.length+' empleados';
   $('iessMatchBody').innerHTML=d.matched.map((m,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${m.ci}</td><td class="raz">${m.nombre}</td>
-    <td class="num">${fmtD(m.dias)}</td><td class="num">${fmtD(m.derecho)}</td>
-    <td class="num" style="font-weight:600;color:var(--teal-deep)">${fmtD(m.provision)}</td><td class="num">${m.ciclo}</td></tr>`).join('');
-  const t25=d.matched.filter(m=>m.ciclo===2025).reduce((a,b)=>a+b.provision,0);
-  const t26=d.matched.filter(m=>m.ciclo===2026).reduce((a,b)=>a+b.provision,0);
-  $('iessMatchFoot').innerHTML=`<tr><td colspan="5">TOTAL provisión del mes (${d.matched.length}) · a 2025: ${fmtD(t25)} · a 2026: ${fmtD(t26)}</td><td class="num">${fmtD(t25+t26)}</td><td></td></tr>`;
+    <td class="num">${fmtD(m.dias)}</td><td class="num">${fmtD(m.prov2025)}</td>
+    <td class="num" style="color:var(--teal-deep)">${fmtD(m.prov2026)}</td>
+    <td class="num" style="font-weight:600">${fmtD(m.provision)}</td></tr>`).join('');
+  const t25=d.matched.reduce((a,b)=>a+b.prov2025,0);
+  const t26=d.matched.reduce((a,b)=>a+b.prov2026,0);
+  $('iessMatchFoot').innerHTML=`<tr><td colspan="4">TOTAL (${d.matched.length})</td><td class="num">${fmtD(t25)}</td><td class="num">${fmtD(t26)}</td><td class="num">${fmtD(t25+t26)}</td></tr>`;
 
   $('iessNewWrap').style.display=d.nuevos.length?'block':'none';
   $('iessNewCnt').textContent=d.nuevos.length;
@@ -618,7 +644,7 @@ $('iessSave').onclick=async()=>{
   if(!iessData||!iessData.matched.length){ alert('Procesa una planilla primero.'); return; }
   const per=$('iessPer').value.trim(); if(!per){ alert('Falta el periodo (ej. 2026-07).'); return; }
   const b=$('iessSave'); b.disabled=true; b.textContent='Guardando…';
-  try{ const r=await api('guardarProvisiones',{periodo:per,filas:iessData.matched.map(m=>({ci:m.ci,nombre:m.nombre,sueldo:m.sueldo,dias:m.dias,provision:m.provision,ciclo:m.ciclo}))});
+  try{ const r=await api('guardarProvisiones',{periodo:per,filas:iessData.matched.map(m=>({ci:m.ci,nombre:m.nombre,sueldo:m.sueldo,dias:m.dias,prov2025:m.prov2025,prov2026:m.prov2026}))});
     // Guardado OK: ya quedó acumulado en "Acumulado 2026" → colapsamos el detalle del mes.
     $('iessResult').style.display='none'; $('iessFile').value=''; $('iessPer').value=''; iessData=null;
     b.disabled=false; b.textContent='💾 Guardar provisiones del mes';
