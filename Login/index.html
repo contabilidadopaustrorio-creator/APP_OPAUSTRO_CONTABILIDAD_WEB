@@ -2833,6 +2833,7 @@
     }
 
     function renderRoles(usersByRole) {
+      const prev = roleSelect.value; // conservar el rol ya elegido al refrescar desde el backend
       state.usersByRole = usersByRole || {};
       roleSelect.innerHTML = '<option value="">Seleccione un rol</option>';
       Object.keys(state.usersByRole).forEach((role) => {
@@ -2841,7 +2842,17 @@
         option.textContent = role === "admin" ? "Administrador" : role;
         roleSelect.appendChild(option);
       });
+      if (prev && state.usersByRole[prev] !== undefined) roleSelect.value = prev;
       renderUsers(roleSelect.value);
+    }
+
+    // Caché local de roles/usuarios: llena el combo al instante en visitas siguientes.
+    const ROLES_CACHE_KEY = "opaustro_contab_login_roles";
+    function readRolesCache() {
+      try { const raw = localStorage.getItem(ROLES_CACHE_KEY); if (!raw) return null; const o = JSON.parse(raw); return (o && o.usersByRole && Object.keys(o.usersByRole).length) ? o.usersByRole : null; } catch (e) { return null; }
+    }
+    function writeRolesCache(usersByRole) {
+      try { if (usersByRole && Object.keys(usersByRole).length) localStorage.setItem(ROLES_CACHE_KEY, JSON.stringify({ usersByRole: usersByRole })); } catch (e) {}
     }
 
     function renderUsers(role) {
@@ -2886,13 +2897,20 @@
         setMessage("Configura LOGIN_API_URL para validar usuarios reales. Por seguridad no se permite acceso local con contraseñas libres.", "error");
         return;
       }
+      // 1) Pinta al instante desde caché (si existe), para no esperar el arranque del backend.
+      const cached = readRolesCache();
+      if (cached) { renderRoles(cached); setMessage("", ""); }
+      else { setMessage("Cargando accesos…", ""); }
+      // 2) Refresca en segundo plano y guarda en caché para la próxima vez.
       callLoginApi("getLoginData", { apiKey: INTERNAL_API_KEY }).then((response) => {
         if (!response || !response.success) {
-          setMessage((response && (response.detail || response.message)) || "No se pudo preparar el acceso.", "error");
+          if (!cached) setMessage((response && (response.detail || response.message)) || "No se pudo preparar el acceso.", "error");
           return;
         }
+        writeRolesCache(response.usersByRole);
         renderRoles(response.usersByRole);
-      }).catch(() => setMessage("No se pudo conectar con Login API.", "error"));
+        setMessage("", "");
+      }).catch(() => { if (!cached) setMessage("No se pudo conectar con Login API.", "error"); });
     }
 
     async function callLoginApi(action, payload) {
