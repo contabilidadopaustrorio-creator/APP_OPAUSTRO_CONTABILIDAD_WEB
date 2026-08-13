@@ -438,7 +438,7 @@ function fetchTomados(){
       const cols=(resp.table.cols||[]).map(c=>norm(c.label));
       const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
       const iCi=F('ci','cedula'), i25=F('de2025'), i26=F('de2026');
-      const iFe=F('fecha'), iNo=F('nombre'), iDi=F('dias','dia');
+      const iFe=F('fecha'), iNo=F('nombre'), iDi=F('dias','dia'), iOp=F('opid');
       const map={}, list=[];
       // Firma de la pestaña "Dias Tomados": si no existe, gviz devuelve la hoja base → NO procesar (evita falsos "tomados").
       const valido = (iCi>=0 && i25>=0 && i26>=0);
@@ -449,9 +449,10 @@ function fetchTomados(){
         const dd=(iDi>=0&&c[iDi]&&c[iDi].v!=null)?Number(c[iDi].v):0;
         const fe=(iFe>=0&&c[iFe])?(c[iFe].f!=null?c[iFe].f:c[iFe].v):'';
         const no=(iNo>=0&&c[iNo])?String(c[iNo].v||''):'';
+        const op=(iOp>=0&&c[iOp])?String(c[iOp].v||''):'';
         if(!map[k]) map[k]={t2025:0,t2026:0};
         map[k].t2025+=d25; map[k].t2026+=d26;
-        list.push({ order:idx, key:k, ci:String(rawci==null?'':rawci).trim(), nombre:no, fecha:fe, dias:dd, de2025:d25, de2026:d26 });
+        list.push({ order:idx, key:k, ci:String(rawci==null?'':rawci).trim(), nombre:no, fecha:fe, dias:dd, de2025:d25, de2026:d26, opId:op });
       });
       const lastByKey={};
       list.forEach(x=>{ if(lastByKey[x.key]===undefined || x.order>lastByKey[x.key]) lastByKey[x.key]=x.order; });
@@ -474,7 +475,7 @@ function renderTomados(){
   $('tRegBody').innerHTML=rows.map(x=>`<tr${x.esUltimo?'':' style="opacity:.55"'}>
     <td>${x.fecha||'—'}</td><td style="font-family:var(--mono)">${x.ci}</td><td class="raz">${x.nombre||'—'}</td>
     <td class="num">${fmtD(x.dias)}</td><td class="num">${fmtD(x.de2025)}</td><td class="num">${fmtD(x.de2026)}</td>
-    <td>${x.esUltimo?`<button class="btn ghost" data-undo="${x.ci}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el registro más reciente de este empleado">🔒 Deshacer</button>'}</td></tr>`).join('');
+    <td>${x.esUltimo?`<button class="btn ghost" data-undo="${x.ci}" data-op="${x.opId||''}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el registro más reciente de este empleado">🔒 Deshacer</button>'}</td></tr>`).join('');
 }
 function empByCi(ci){ return base.find(r=>ck(r.ci)===ck(ci)); }
 function fillTom(){
@@ -780,7 +781,8 @@ $('tReg').onclick=async()=>{
     if(!confirm('⚠️ El saldo 2025 ('+fmtD(s2025)+') no alcanza.\nVas a ANTICIPAR '+fmtD(de2026)+' día(s) del 2026 (corresponden a salir en 2027).\n\n¿Seguro que quieres anticipar?')) return;
   }
   const b=$('tReg'); b.disabled=true; b.textContent='Registrando…';
-  try{ await api('registrarTomado',{ci:r.ci,nombre:r.nombre,dias:n,de2025:de2025,de2026:de2026});
+  const opId='op_'+Date.now()+'_'+Math.floor(Math.random()*1e6); // idempotencia: evita duplicar si reintenta
+  try{ await api('registrarTomado',{ci:r.ci,nombre:r.nombre,dias:n,de2025:de2025,de2026:de2026,opId:opId});
     $('tDias').value='';
     $('tStatus').classList.remove('err');
     $('tStatus').textContent='✓ Registrados '+fmtD(n)+' días de '+r.nombre+' ('+fmtD(de2025)+' de 2025'+(de2026>0?', '+fmtD(de2026)+' de 2026 anticipados':'')+').';
@@ -792,7 +794,7 @@ $('tRegBody').addEventListener('click',async ev=>{
   const btn=ev.target.closest('[data-undo]'); if(!btn) return;
   if(!confirm('¿Deshacer el último registro de días tomados de este empleado? Devuelve esos días al saldo.')) return;
   btn.disabled=true; btn.textContent='…';
-  try{ await api('borrarUltimoTomado',{ci:btn.dataset.undo}); fetchTomados(); }
+  try{ await api('borrarUltimoTomado',{ci:btn.dataset.undo,opId:btn.dataset.op}); fetchTomados(); }
   catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Deshacer'; }
 });
 
