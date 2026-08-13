@@ -358,16 +358,22 @@ function normPeriodo(v){
 async function api(action,payload){
   if(!VAC_API_URL) throw new Error('Backend no configurado todavía. Despliega el Apps Script de Vacaciones y pega su /exec en VAC_API_URL.');
   const body=JSON.stringify(Object.assign({apiKey:VAC_API_KEY,action},payload));
-  // Reintenta una vez: Apps Script en frío puede devolver una página intermedia (no-JSON) en la 1ª llamada.
-  for(let intento=0;intento<2;intento++){
-    const res=await fetch(VAC_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
-    const txt=await res.text();
+  // Reintenta con espera creciente: Apps Script en frío puede tardar y devolver una página intermedia (no-JSON).
+  const esperas=[1500,3000,5000];
+  for(let intento=0;intento<=esperas.length;intento++){
+    let txt='';
+    try{
+      const res=await fetch(VAC_API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+      txt=await res.text();
+    }catch(e){ txt=''; } // error de red → reintentar
     let j=null; try{ j=JSON.parse(txt); }catch(_){ j=null; }
-    if(j){ if(!j.ok) throw new Error(j.error||'error'); return j; }
-    if(intento===0) await new Promise(r=>setTimeout(r,1500));
+    if(j){ if(!j.ok) throw new Error(j.error||'error'); return j; } // error de negocio: no reintentar
+    if(intento<esperas.length) await new Promise(r=>setTimeout(r,esperas[intento]));
   }
   throw new Error('Respuesta no válida del backend. Reintenta en unos segundos.');
 }
+// Calienta el backend al cargar (evita el arranque en frío en la 1ª acción real).
+function warmupApi(){ if(VAC_API_URL){ try{ fetch(VAC_API_URL,{method:'GET'}).catch(()=>{}); }catch(e){} } }
 
 $('iessProc').onclick=()=>{
   const f=$('iessFile').files[0];
@@ -508,6 +514,7 @@ $('iessSave').onclick=async()=>{
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
+warmupApi();
 fetchExcluidos();
 fetchBase();
 </script>
