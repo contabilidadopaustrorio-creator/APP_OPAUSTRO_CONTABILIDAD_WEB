@@ -180,7 +180,7 @@
     <p class="sub" style="margin:0 0 10px">Elige un empleado, mira su saldo y registra los días que tomó. Se descuentan <b>primero del 2025</b>; si no alcanza, del <b>2026</b> (con aviso de anticipo, porque esos días son para 2027).</p>
     <div class="filters" style="margin-bottom:10px">
       <div class="fg"><label>Departamento</label><select id="tDep"><option value="">Todos</option></select></div>
-      <div class="fg" style="flex:1;min-width:240px"><label>Empleado</label><select id="tEmp"><option value="">Selecciona…</option></select></div>
+      <div class="fg" style="flex:1;min-width:240px"><label>Empleado</label><input type="search" id="tEmp" list="dlEmpleados" placeholder="Escribe el nombre o elige…" autocomplete="off"><datalist id="dlEmpleados"></datalist></div>
       <div class="fg"><label>Días a tomar</label><input type="number" id="tDias" min="0.5" step="0.5" placeholder="Ej. 11" style="min-width:90px"></div>
       <div class="spacer"></div>
       <button class="btn" id="tReg">Registrar</button>
@@ -486,14 +486,21 @@ function fillTom(){
 function fillTomEmp(){
   const dep=$('tDep').value;
   const emps=base.filter(r=>norm(r.estado).includes('activo') && (!dep||r.depto===dep)).sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
-  const el=$('tEmp'); const cur=el.value;
-  el.innerHTML='<option value="">Selecciona…</option>'+emps.map(r=>`<option value="${r.ci}">${r.nombre} — ${r.ci}</option>`).join('');
-  el.value=cur; mostrarSaldo();
+  const esc=v=>String(v).replace(/"/g,'&quot;');
+  $('dlEmpleados').innerHTML=emps.map(r=>`<option value="${esc(r.nombre)} — ${r.ci}"></option>`).join('');
+  mostrarSaldo();
+}
+// Resuelve el texto escrito a un empleado: por cédula al final, o por nombre exacto.
+function selectedEmp(){
+  const txt=$('tEmp').value.trim(); if(!txt) return null;
+  const m=txt.match(/(\d{5,})\s*$/);           // "Nombre — 0102030405"
+  if(m){ const r=empByCi(m[1]); if(r) return r; }
+  const n=norm(txt);
+  return base.find(r=>norm(r.nombre+'—'+r.ci)===n) || base.find(r=>norm(r.nombre)===n) || null;
 }
 function mostrarSaldo(){
-  const ci=$('tEmp').value, box=$('tSaldo');
-  if(!ci){ box.textContent=''; return; }
-  const r=empByCi(ci); if(!r){ box.textContent=''; return; }
+  const box=$('tSaldo');
+  const r=selectedEmp(); if(!r){ box.textContent=''; return; }
   applyAcum();
   box.innerHTML=`Saldo de <b>${r.nombre}</b>: total <b>${fmtD(r.dias)}</b> días · disponible 2025: <b>${fmtD(r.dias2025)}</b> · 2026 (anticipo): ${fmtD(r.prov)}${r.tomados?` · ya tomó ${fmtD(r.tomados)}`:''}`;
 }
@@ -758,10 +765,10 @@ $('iessSave').onclick=async()=>{
 
 // --- Días tomados: filtros y registro ---
 $('tDep').onchange=fillTomEmp;
+$('tEmp').oninput=mostrarSaldo;
 $('tEmp').onchange=mostrarSaldo;
 $('tReg').onclick=async()=>{
-  const ci=$('tEmp').value; if(!ci){ alert('Elige un empleado.'); return; }
-  const r=empByCi(ci); if(!r){ alert('Empleado no encontrado.'); return; }
+  const r=selectedEmp(); if(!r){ alert('Elige un empleado: escribe el nombre y selecciónalo de la lista.'); return; }
   const n=Number($('tDias').value||0);
   if(!(n>0)){ alert('Pon los días a tomar.'); return; }
   applyAcum();
