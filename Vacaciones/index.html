@@ -474,7 +474,7 @@ function renderTomados(){
   $('tRegBody').innerHTML=rows.map(x=>`<tr${x.esUltimo?'':' style="opacity:.55"'}>
     <td>${x.fecha||'—'}</td><td style="font-family:var(--mono)">${x.ci}</td><td class="raz">${x.nombre||'—'}</td>
     <td class="num">${fmtD(x.dias)}</td><td class="num">${fmtD(x.de2025)}</td><td class="num">${fmtD(x.de2026)}</td>
-    <td>${x.esUltimo?`<button class="btn ghost" data-undo="${x.ci}">Deshacer</button>`:'<span class="sub" style="font-size:11px">en orden</span>'}</td></tr>`).join('');
+    <td>${x.esUltimo?`<button class="btn ghost" data-undo="${x.ci}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el registro más reciente de este empleado">🔒 Deshacer</button>'}</td></tr>`).join('');
 }
 function empByCi(ci){ return base.find(r=>ck(r.ci)===ck(ci)); }
 function fillTom(){
