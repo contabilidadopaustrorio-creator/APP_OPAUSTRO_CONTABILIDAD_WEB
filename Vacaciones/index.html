@@ -155,6 +155,15 @@
     </div>
   </div>
 
+  <div class="card" id="iessPeriodos" style="display:none">
+    <h2>🗂️ Planillas cargadas <span class="pill" id="iessPeriodosCnt"></span></h2>
+    <p class="sub" style="margin:0 0 10px">Provisiones guardadas por mes. Si te equivocaste, borra una planilla y el acumulado se recalcula solo. <b>Tu base del Sheet NO se toca.</b></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Período</th><th class="num">Empleados</th><th class="num">Días provisión</th><th></th></tr></thead>
+      <tbody id="iessPeriodosBody"></tbody>
+    </table></div>
+  </div>
+
   <div class="card" id="exclCard" style="display:none">
     <h2>🚫 Excluidos — no se provisionan <span class="pill" id="exclCnt"></span></h2>
     <p class="sub" style="margin:0 0 10px">Pasantes u otros que no entran en la provisión. Se saltan automáticamente al subir la planilla. Puedes quitar la exclusión si algún día pasan a fijos.</p>
@@ -322,6 +331,36 @@ function fetchExcluidos(){
   s.onerror=()=>{ /* la pestaña "Excluidos" aún no existe: no pasa nada */ };
   document.body.appendChild(s);
 }
+let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
+function fetchPeriodos(){
+  const cb='per_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const map={};
+      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+        const pc=c[0]; const per=pc?(pc.f!=null?pc.f:pc.v):''; if(!per) return;
+        const prov=(c[5]&&c[5].v!=null)?Number(c[5].v):0;
+        if(!map[per]) map[per]={periodo:String(per),emp:0,dias:0};
+        map[per].emp++; map[per].dias+=prov;
+      });
+      periodosList=Object.keys(map).sort().map(k=>map[k]);
+    }catch(e){ periodosList=[]; }
+    renderPeriodos();
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Provisiones&_='+Date.now();
+  s.onerror=()=>{};
+  document.body.appendChild(s);
+}
+function renderPeriodos(){
+  const card=$('iessPeriodos');
+  if(!periodosList.length){ card.style.display='none'; return; }
+  card.style.display='block';
+  $('iessPeriodosCnt').textContent=periodosList.length;
+  $('iessPeriodosBody').innerHTML=periodosList.map(p=>`<tr>
+    <td style="font-weight:600">${p.periodo}</td><td class="num">${p.emp}</td><td class="num">${fmtD(p.dias)}</td>
+    <td><button class="btn ghost" data-delper="${p.periodo}">Borrar planilla</button></td></tr>`).join('');
+}
 function renderExcluidos(){
   const card=$('exclCard');
   if(!excluidosList.length){ card.style.display='none'; return; }
@@ -485,6 +524,16 @@ $('iessNewBody').addEventListener('click',async ev=>{
     }catch(err){ alert('No se pudo excluir: '+err.message); exBtn.disabled=false; exBtn.textContent='Excluir'; }
   }
 });
+$('iessPeriodosBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('[data-delper]'); if(!btn) return;
+  const per=btn.dataset.delper;
+  if(!confirm('¿Borrar la planilla del período '+per+'?\nSe quita del acumulado y se recalcula. Tu base del Sheet NO se toca.')) return;
+  btn.disabled=true; btn.textContent='…';
+  try{ await api('guardarProvisiones',{periodo:per,filas:[]}); // filas vacías = borrar ese período
+    iessStatus('✓ Planilla '+per+' borrada. El acumulado se recalculó. Tu base sigue intacta.');
+    fetchPeriodos();
+  }catch(err){ alert('No se pudo borrar: '+err.message); btn.disabled=false; btn.textContent='Borrar planilla'; }
+});
 $('exclBody').addEventListener('click',async ev=>{
   const btn=ev.target.closest('[data-unexcl]'); if(!btn) return;
   const ci=btn.dataset.unexcl;
@@ -511,11 +560,13 @@ $('iessSave').onclick=async()=>{
     $('iessResult').style.display='none'; $('iessFile').value=''; $('iessPer').value=''; iessData=null;
     b.disabled=false; b.textContent='💾 Guardar provisiones del mes';
     iessStatus('✓ Provisiones de '+per+' guardadas y acumuladas ('+r.guardadas+' empleados). Se sumaron en la pestaña "Acumulado 2026" del Sheet. Sube otra planilla para el siguiente mes.');
+    fetchPeriodos();
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
 warmupApi();
 fetchExcluidos();
+fetchPeriodos();
 fetchBase();
 </script>
 </body>
