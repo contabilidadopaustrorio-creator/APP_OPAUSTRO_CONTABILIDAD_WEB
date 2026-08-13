@@ -414,11 +414,12 @@ function fetchAcumulado(){
     try{
       const cols=(resp.table.cols||[]).map(c=>norm(c.label));
       const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
-      const iCi=F('ci','cedula'), i25=F('2025'), i26=F('2026');
+      const iCi=F('ci','cedula'), i25=F('provciclo2025','prov2025'), i26=F('provciclo2026','prov2026');
       const m={};
-      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+      // Firma de "Acumulado 2026": si la pestaña no existe, gviz devuelve la hoja base → NO procesar.
+      if(iCi>=0 && i25>=0 && i26>=0) (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
         const cc=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(cc); if(!k) return;
-        m[k]={ p2025:(i25>=0&&c[i25]&&c[i25].v!=null)?Number(c[i25].v):0, p2026:(i26>=0&&c[i26]&&c[i26].v!=null)?Number(c[i26].v):0 };
+        m[k]={ p2025:(c[i25]&&c[i25].v!=null)?Number(c[i25].v):0, p2026:(c[i26]&&c[i26].v!=null)?Number(c[i26].v):0 };
       });
       acumMap=m;
     }catch(e){ acumMap={}; }
@@ -436,9 +437,12 @@ function fetchTomados(){
     try{
       const cols=(resp.table.cols||[]).map(c=>norm(c.label));
       const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
-      const iFe=F('fecha'), iCi=F('ci','cedula'), iNo=F('nombre'), iDi=F('dias','dia'), i25=F('de2025','2025'), i26=F('de2026','2026');
+      const iCi=F('ci','cedula'), i25=F('de2025'), i26=F('de2026');
+      const iFe=F('fecha'), iNo=F('nombre'), iDi=F('dias','dia');
       const map={}, list=[];
-      (resp.table.rows||[]).forEach((r,idx)=>{ const c=r.c||[];
+      // Firma de la pestaña "Dias Tomados": si no existe, gviz devuelve la hoja base → NO procesar (evita falsos "tomados").
+      const valido = (iCi>=0 && i25>=0 && i26>=0);
+      if(valido) (resp.table.rows||[]).forEach((r,idx)=>{ const c=r.c||[];
         const rawci=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(rawci); if(!k) return;
         const d25=(i25>=0&&c[i25]&&c[i25].v!=null)?Number(c[i25].v):0;
         const d26=(i26>=0&&c[i26]&&c[i26].v!=null)?Number(c[i26].v):0;
@@ -498,8 +502,10 @@ function fetchPeriodos(){
   const cb='per_cb_'+Math.floor(Math.random()*1e9);
   window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
     try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      const esProvisiones = cols.some(c=>c.includes('periodo')); // firma; si no existe la pestaña, gviz devuelve la base
       const map={};
-      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+      if(esProvisiones) (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
         const pc=c[0]; const per=pc?(pc.f!=null?pc.f:pc.v):''; if(!per) return;
         const p25=(c[5]&&c[5].v!=null)?Number(c[5].v):0;   // Prov 2025
         const p26=(c[6]&&c[6].v!=null)?Number(c[6].v):0;   // Prov 2026
