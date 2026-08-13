@@ -104,7 +104,8 @@
             <th class="sortable num" data-k="derecho" title="Derecho anual: 15 días + 1 por cada año sobre 5 (máx 30)">Días/año<span class="ar"></span></th>
             <th class="sortable num" data-k="dias" title="Total pendiente = Días 2025 + Días 2026 (base + planillas subidas)">Total días<span class="ar"></span></th>
             <th class="sortable num" data-k="dias2025" title="Días del ciclo 2025 = arrastre de la base + provisiones subidas de meses previos al aniversario">Días 2025<span class="ar"></span></th>
-            <th class="sortable num" data-k="prov" title="Días del ciclo 2026 = provisión base + provisiones subidas tras el aniversario">Días 2026<span class="ar"></span></th>
+            <th class="sortable num" data-k="prov" title="Saldo del ciclo 2026 = provisión − días tomados de 2026">Días 2026<span class="ar"></span></th>
+            <th class="sortable num" data-k="tomados" title="Días de vacaciones ya tomados (2025 + 2026)">Tomados<span class="ar"></span></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot id="tfoot"></tfoot>
@@ -174,8 +175,30 @@
     </table></div>
   </div>
 
+  <div class="card" id="tomCard">
+    <h2>➖ Registrar días tomados</h2>
+    <p class="sub" style="margin:0 0 10px">Elige un empleado, mira su saldo y registra los días que tomó. Se descuentan <b>primero del 2025</b>; si no alcanza, del <b>2026</b> (con aviso de anticipo, porque esos días son para 2027).</p>
+    <div class="filters" style="margin-bottom:10px">
+      <div class="fg"><label>Departamento</label><select id="tDep"><option value="">Todos</option></select></div>
+      <div class="fg" style="flex:1;min-width:240px"><label>Empleado</label><select id="tEmp"><option value="">Selecciona…</option></select></div>
+      <div class="fg"><label>Días a tomar</label><input type="number" id="tDias" min="0.5" step="0.5" placeholder="Ej. 11" style="min-width:90px"></div>
+      <div class="spacer"></div>
+      <button class="btn" id="tReg">Registrar</button>
+    </div>
+    <div id="tSaldo" class="sub" style="margin:0 0 6px;min-height:16px"></div>
+    <div class="status" id="tStatus" style="margin:0"></div>
+
+    <div id="tRegistrosWrap" style="display:none">
+      <div class="subhead">📋 Días tomados registrados <span class="pill" id="tCnt"></span></div>
+      <p class="sub" style="margin:0 0 8px">Solo puedes <b>deshacer el último</b> registro de cada empleado (en orden).</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Fecha</th><th>Cédula</th><th>Nombre</th><th class="num">Días</th><th class="num">De 2025</th><th class="num">De 2026</th><th></th></tr></thead>
+        <tbody id="tRegBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
   <div class="soon">
-    <div class="card"><h2>➖ Registrar días tomados <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Descontar del saldo los días que cada empleado ya tomó.</p></div>
     <div class="card"><h2>🗓️ Planificación <span class="tag">Próximamente</span></h2><p class="sub" style="margin:0">Programar vacaciones futuras.</p></div>
   </div>
 
@@ -191,6 +214,8 @@ const norm=s=>String(s==null?'':s).toLowerCase().replace(/[áàä]/g,'a').replac
 const toNum=x=>{ const n=parseFloat(String(x==null?'':x).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
 let base=[];
 let acumMap={}; // ci → {p2025,p2026} provisiones acumuladas subidas (pestaña "Acumulado 2026")
+let tomadosMap={}; // ci → {t2025,t2026} días de vacaciones ya tomados (pestaña "Dias Tomados")
+let tomados=[];    // lista de registros de días tomados
 let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Parser único de fechas: entiende dd/mm/aaaa y aaaa-mm-dd (los empleados agregados quedan en aaaa-mm-dd).
@@ -208,7 +233,7 @@ function sortRows(rows){
   if(!sort.key) return rows;
   const k=sort.key, d=sort.dir;
   return rows.slice().sort((a,b)=>{
-    if(k==='dias'||k==='dias2025'||k==='prov'||k==='derecho') return d*((a[k]||0)-(b[k]||0));
+    if(k==='dias'||k==='dias2025'||k==='prov'||k==='tomados'||k==='derecho') return d*((a[k]||0)-(b[k]||0));
     if(k==='fecha') return d*(parseFecha(a.fecha)-parseFecha(b.fecha));
     return d*String(a[k]||'').localeCompare(String(b[k]||''),'es');
   });
@@ -286,6 +311,7 @@ function buildFilters(){
   const esc=v=>String(v).replace(/"/g,'&quot;');
   if($('dlCargos')) $('dlCargos').innerHTML=cargos.map(v=>`<option value="${esc(v)}"></option>`).join('');
   if($('dlDeptos')) $('dlDeptos').innerHTML=deptos.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  fillTom();
 }
 function filtered(){
   const dep=$('fDep').value, car=$('fCar').value, est=$('fEst').value, q=norm($('fBuscar').value);
@@ -298,9 +324,14 @@ function filtered(){
 function applyAcum(){
   base.forEach(r=>{
     const a=acumMap[ck(r.ci)]||{p2025:0,p2026:0};
-    r.prov=Math.round((r.provBase+(a.p2026||0))*100)/100;                 // Días 2026 (base + subidas)
-    r.dias2025=Math.round(((r.diasBase-r.provBase)+(a.p2025||0))*100)/100; // Días 2025 (arrastre + subidas)
-    r.dias=Math.round((r.dias2025+r.prov)*100)/100;                        // Total días
+    const t=tomadosMap[ck(r.ci)]||{t2025:0,t2026:0};
+    const g2025=(r.diasBase-r.provBase)+(a.p2025||0); // provisionado 2025
+    const g2026=r.provBase+(a.p2026||0);              // provisionado 2026
+    r.g2026=Math.round(g2026*100)/100;                // provisión bruta 2026 (para KPI)
+    r.tomados=Math.round(((t.t2025||0)+(t.t2026||0))*100)/100;
+    r.dias2025=Math.round((g2025-(t.t2025||0))*100)/100; // saldo 2025 (tras tomados)
+    r.prov=Math.round((g2026-(t.t2026||0))*100)/100;      // saldo 2026 (tras tomados)
+    r.dias=Math.round((r.dias2025+r.prov)*100)/100;        // saldo total
   });
 }
 function render(){
@@ -311,16 +342,16 @@ function render(){
   const activos=base.filter(r=>norm(r.estado).includes('activo'));
   $('kEmp').textContent=activos.length||base.length;
   $('kDias').textContent=fmtD(base.reduce((a,b)=>a+b.dias,0));
-  $('kProv').textContent=fmtD(base.reduce((a,b)=>a+b.prov,0));
+  $('kProv').textContent=fmtD(base.reduce((a,b)=>a+(b.g2026||0),0));
   $('cnt').textContent=rows.length+' de '+base.length;
   const sorted=sortRows(rows);
   $('tbody').innerHTML=sorted.map((r,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${r.ci||'—'}</td><td class="raz">${r.nombre}</td>
     <td>${r.depto}</td><td>${r.cargo}</td><td>${r.fecha||'—'}</td>
     <td class="num">${r.derecho}</td>
-    <td class="num" style="font-weight:600">${fmtD(r.dias)}</td><td class="num">${fmtD(r.dias2025)}</td><td class="num" style="color:var(--teal-deep);font-weight:600">${fmtD(r.prov)}</td></tr>`).join('');
+    <td class="num" style="font-weight:600">${fmtD(r.dias)}</td><td class="num">${fmtD(r.dias2025)}</td><td class="num" style="color:var(--teal-deep);font-weight:600">${fmtD(r.prov)}</td><td class="num" style="color:var(--warn)">${r.tomados?fmtD(r.tomados):'—'}</td></tr>`).join('');
   $('tblEmpty').style.display=rows.length?'none':'block';
-  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td></td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias2025,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.prov,0))}</td></tr>`;
+  $('tfoot').innerHTML=`<tr><td colspan="6">TOTAL (${rows.length})</td><td></td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.dias2025,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+b.prov,0))}</td><td class="num">${fmtD(rows.reduce((a,b)=>a+(b.tomados||0),0))}</td></tr>`;
   document.querySelectorAll('th.sortable').forEach(th=>{ const on=th.dataset.k===sort.key; th.classList.toggle('on',on); const ar=th.querySelector('.ar'); if(ar) ar.textContent=on?(sort.dir<0?'▼':'▲'):'⇅'; });
 }
 ['fDep','fCar','fEst'].forEach(id=>$(id).onchange=render);
@@ -331,14 +362,15 @@ function exportarXLSX(){
   if(typeof XLSX==='undefined'){ alert('No cargó la librería de Excel (revisa tu conexión).'); return; }
   applyAcum();
   const rows=sortRows(filtered());
-  const data=[['Cédula','Nombre','Departamento','Cargo','Ingreso','Días/año','Total días','Días 2025','Días 2026']];
-  rows.forEach(r=>data.push([r.ci, r.nombre, r.depto, r.cargo, r.fecha, r.derecho, r.dias, r.dias2025, r.prov]));
+  const data=[['Cédula','Nombre','Departamento','Cargo','Ingreso','Días/año','Total días','Días 2025','Días 2026','Tomados']];
+  rows.forEach(r=>data.push([r.ci, r.nombre, r.depto, r.cargo, r.fecha, r.derecho, r.dias, r.dias2025, r.prov, r.tomados||0]));
   data.push(['','','','','TOTAL ('+rows.length+')','',
     Math.round(rows.reduce((a,b)=>a+b.dias,0)*100)/100,
     Math.round(rows.reduce((a,b)=>a+b.dias2025,0)*100)/100,
-    Math.round(rows.reduce((a,b)=>a+b.prov,0)*100)/100]);
+    Math.round(rows.reduce((a,b)=>a+b.prov,0)*100)/100,
+    Math.round(rows.reduce((a,b)=>a+(b.tomados||0),0)*100)/100]);
   const ws=XLSX.utils.aoa_to_sheet(data);
-  ws['!cols']=[{wch:12},{wch:32},{wch:16},{wch:22},{wch:11},{wch:9},{wch:11},{wch:11},{wch:11}];
+  ws['!cols']=[{wch:12},{wch:32},{wch:16},{wch:22},{wch:11},{wch:9},{wch:11},{wch:11},{wch:11},{wch:10}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Vacaciones');
   const d=new Date(), p=n=>('0'+n).slice(-2);
@@ -396,6 +428,70 @@ function fetchAcumulado(){
   s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet='+encodeURIComponent('Acumulado 2026')+'&_='+Date.now();
   s.onerror=()=>{};
   document.body.appendChild(s);
+}
+// ---------- Días tomados ----------
+function fetchTomados(){
+  const cb='tom_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
+      const iFe=F('fecha'), iCi=F('ci','cedula'), iNo=F('nombre'), iDi=F('dias','dia'), i25=F('de2025','2025'), i26=F('de2026','2026');
+      const map={}, list=[];
+      (resp.table.rows||[]).forEach((r,idx)=>{ const c=r.c||[];
+        const rawci=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(rawci); if(!k) return;
+        const d25=(i25>=0&&c[i25]&&c[i25].v!=null)?Number(c[i25].v):0;
+        const d26=(i26>=0&&c[i26]&&c[i26].v!=null)?Number(c[i26].v):0;
+        const dd=(iDi>=0&&c[iDi]&&c[iDi].v!=null)?Number(c[iDi].v):0;
+        const fe=(iFe>=0&&c[iFe])?(c[iFe].f!=null?c[iFe].f:c[iFe].v):'';
+        const no=(iNo>=0&&c[iNo])?String(c[iNo].v||''):'';
+        if(!map[k]) map[k]={t2025:0,t2026:0};
+        map[k].t2025+=d25; map[k].t2026+=d26;
+        list.push({ order:idx, key:k, ci:String(rawci==null?'':rawci).trim(), nombre:no, fecha:fe, dias:dd, de2025:d25, de2026:d26 });
+      });
+      const lastByKey={};
+      list.forEach(x=>{ if(lastByKey[x.key]===undefined || x.order>lastByKey[x.key]) lastByKey[x.key]=x.order; });
+      list.forEach(x=>{ x.esUltimo=(x.order===lastByKey[x.key]); });
+      tomadosMap=map; tomados=list;
+    }catch(e){ tomadosMap={}; tomados=[]; }
+    renderTomados(); if(base.length) render(); mostrarSaldo();
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet='+encodeURIComponent('Dias Tomados')+'&_='+Date.now();
+  s.onerror=()=>{};
+  document.body.appendChild(s);
+}
+function renderTomados(){
+  const wrap=$('tRegistrosWrap');
+  if(!tomados.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  $('tCnt').textContent=tomados.length;
+  const rows=tomados.slice().sort((a,b)=>b.order-a.order); // más reciente arriba
+  $('tRegBody').innerHTML=rows.map(x=>`<tr${x.esUltimo?'':' style="opacity:.55"'}>
+    <td>${x.fecha||'—'}</td><td style="font-family:var(--mono)">${x.ci}</td><td class="raz">${x.nombre||'—'}</td>
+    <td class="num">${fmtD(x.dias)}</td><td class="num">${fmtD(x.de2025)}</td><td class="num">${fmtD(x.de2026)}</td>
+    <td>${x.esUltimo?`<button class="btn ghost" data-undo="${x.ci}">Deshacer</button>`:'<span class="sub" style="font-size:11px">en orden</span>'}</td></tr>`).join('');
+}
+function empByCi(ci){ return base.find(r=>ck(r.ci)===ck(ci)); }
+function fillTom(){
+  const deptos=[...new Set(base.map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
+  const el=$('tDep'); const cur=el.value;
+  el.innerHTML='<option value="">Todos</option>'+deptos.map(v=>`<option>${v}</option>`).join(''); el.value=cur;
+  fillTomEmp();
+}
+function fillTomEmp(){
+  const dep=$('tDep').value;
+  const emps=base.filter(r=>norm(r.estado).includes('activo') && (!dep||r.depto===dep)).sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  const el=$('tEmp'); const cur=el.value;
+  el.innerHTML='<option value="">Selecciona…</option>'+emps.map(r=>`<option value="${r.ci}">${r.nombre} — ${r.ci}</option>`).join('');
+  el.value=cur; mostrarSaldo();
+}
+function mostrarSaldo(){
+  const ci=$('tEmp').value, box=$('tSaldo');
+  if(!ci){ box.textContent=''; return; }
+  const r=empByCi(ci); if(!r){ box.textContent=''; return; }
+  applyAcum();
+  box.innerHTML=`Saldo de <b>${r.nombre}</b>: total <b>${fmtD(r.dias)}</b> días · disponible 2025: <b>${fmtD(r.dias2025)}</b> · 2026 (anticipo): ${fmtD(r.prov)}${r.tomados?` · ya tomó ${fmtD(r.tomados)}`:''}`;
 }
 let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
 function fetchPeriodos(){
@@ -654,10 +750,44 @@ $('iessSave').onclick=async()=>{
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
+// --- Días tomados: filtros y registro ---
+$('tDep').onchange=fillTomEmp;
+$('tEmp').onchange=mostrarSaldo;
+$('tReg').onclick=async()=>{
+  const ci=$('tEmp').value; if(!ci){ alert('Elige un empleado.'); return; }
+  const r=empByCi(ci); if(!r){ alert('Empleado no encontrado.'); return; }
+  const n=Number($('tDias').value||0);
+  if(!(n>0)){ alert('Pon los días a tomar.'); return; }
+  applyAcum();
+  const s2025=Math.max(0,r.dias2025), s2026=Math.max(0,r.prov), stot=r.dias;
+  if(n>stot+0.001){ alert('No alcanza. '+r.nombre+' tiene saldo total de '+fmtD(stot)+' días.'); return; }
+  const de2025=Math.round(Math.min(n,s2025)*100)/100;
+  const de2026=Math.round((n-de2025)*100)/100;
+  if(de2026>0){
+    if(!confirm('⚠️ El saldo 2025 ('+fmtD(s2025)+') no alcanza.\nVas a ANTICIPAR '+fmtD(de2026)+' día(s) del 2026 (corresponden a salir en 2027).\n\n¿Seguro que quieres anticipar?')) return;
+  }
+  const b=$('tReg'); b.disabled=true; b.textContent='Registrando…';
+  try{ await api('registrarTomado',{ci:r.ci,nombre:r.nombre,dias:n,de2025:de2025,de2026:de2026});
+    $('tDias').value='';
+    $('tStatus').classList.remove('err');
+    $('tStatus').textContent='✓ Registrados '+fmtD(n)+' días de '+r.nombre+' ('+fmtD(de2025)+' de 2025'+(de2026>0?', '+fmtD(de2026)+' de 2026 anticipados':'')+').';
+    fetchTomados();
+    b.disabled=false; b.textContent='Registrar';
+  }catch(err){ alert('No se pudo registrar: '+err.message); b.disabled=false; b.textContent='Registrar'; }
+};
+$('tRegBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('[data-undo]'); if(!btn) return;
+  if(!confirm('¿Deshacer el último registro de días tomados de este empleado? Devuelve esos días al saldo.')) return;
+  btn.disabled=true; btn.textContent='…';
+  try{ await api('borrarUltimoTomado',{ci:btn.dataset.undo}); fetchTomados(); }
+  catch(err){ alert('No se pudo: '+err.message); btn.disabled=false; btn.textContent='Deshacer'; }
+});
+
 warmupApi();
 fetchExcluidos();
 fetchPeriodos();
 fetchAcumulado();
+fetchTomados();
 fetchBase();
 </script>
 </body>
