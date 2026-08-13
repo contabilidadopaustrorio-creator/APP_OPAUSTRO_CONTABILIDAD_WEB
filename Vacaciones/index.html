@@ -101,9 +101,9 @@
             <th class="sortable" data-k="cargo">Cargo<span class="ar"></span></th>
             <th class="sortable" data-k="fecha">Ingreso<span class="ar"></span></th>
             <th class="sortable num" data-k="derecho" title="Derecho anual: 15 días + 1 por cada año sobre 5 (máx 30)">Días/año<span class="ar"></span></th>
-            <th class="sortable num" data-k="dias" title="Total de días pendientes (valor de la base)">Total días<span class="ar"></span></th>
-            <th class="sortable num" data-k="dias2025" title="Días de 2025 y anteriores = Total − Días 2026">Días 2025<span class="ar"></span></th>
-            <th class="sortable num" data-k="prov" title="Días provisionados en 2026 (ciclo actual hasta jun-2026)">Días 2026<span class="ar"></span></th>
+            <th class="sortable num" data-k="dias" title="Total pendiente = Días 2025 + Días 2026 (base + planillas subidas)">Total días<span class="ar"></span></th>
+            <th class="sortable num" data-k="dias2025" title="Días del ciclo 2025 = arrastre de la base + provisiones subidas de meses previos al aniversario">Días 2025<span class="ar"></span></th>
+            <th class="sortable num" data-k="prov" title="Días del ciclo 2026 = provisión base + provisiones subidas tras el aniversario">Días 2026<span class="ar"></span></th>
           </tr></thead>
           <tbody id="tbody"></tbody>
           <tfoot id="tfoot"></tfoot>
@@ -189,6 +189,7 @@ const fmtD=n=>Number(n||0).toLocaleString('es-EC',{maximumFractionDigits:2});
 const norm=s=>String(s==null?'':s).toLowerCase().replace(/[áàä]/g,'a').replace(/[éèë]/g,'e').replace(/[íìï]/g,'i').replace(/[óòö]/g,'o').replace(/[úùü]/g,'u').replace(/[^a-z0-9]/g,'');
 const toNum=x=>{ const n=parseFloat(String(x==null?'':x).replace(/[^0-9.-]/g,'')); return isNaN(n)?0:n; };
 let base=[];
+let acumMap={}; // ci → {p2025,p2026} provisiones acumuladas subidas (pestaña "Acumulado 2026")
 let sort={key:'',dir:1};
 function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
 function parseFecha(f){ const m=String(f).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/); if(!m)return 0; let y=+m[3]; if(y<100)y+=2000; return y*10000+(+m[2])*100+(+m[1]); }
@@ -253,10 +254,12 @@ function parseGviz(resp){
   const cellF=(c,i)=>{ const x=(i>=0&&c[i])?c[i]:null; return x==null?'':(x.f!=null?x.f:(x.v==null?'':x.v)); };
   base=(resp.table.rows||[]).map(r=>{ const c=r.c||[];
     const fecha=String(cellF(c,iFec)).trim();
-    const dias=toNum(cellV(c,iDias)), prov=provision2026(fecha);
+    const diasBase=toNum(cellV(c,iDias)), provBase=provision2026(fecha);
     return { ci:padCI(cellV(c,iCI)), nombre:String(cellV(c,iNom)).trim(), estado:String(cellV(c,iEst)).trim(),
       depto:String(cellV(c,iDep)).trim()||'—', cargo:String(cellV(c,iCar)).trim()||'—', fecha,
-      dias, prov, dias2025:Math.round((dias-prov)*100)/100, derecho:derechoAnual(fecha) };
+      diasBase, provBase, derecho:derechoAnual(fecha),
+      // valores mostrados (se recalculan con el acumulado de planillas subidas):
+      dias:diasBase, prov:provBase, dias2025:Math.round((diasBase-provBase)*100)/100 };
   }).filter(r=>r.nombre);
   buildFilters(); render(); status('✓ '+base.length+' empleados cargados desde el Sheet.');
 }
@@ -278,8 +281,18 @@ function filtered(){
     if(q&&!norm(r.nombre+' '+r.ci).includes(q))return false; return true;
   });
 }
+// Suma a cada empleado las provisiones subidas: Días 2026 += acum 2026, Días 2025 += acum 2025.
+function applyAcum(){
+  base.forEach(r=>{
+    const a=acumMap[ck(r.ci)]||{p2025:0,p2026:0};
+    r.prov=Math.round((r.provBase+(a.p2026||0))*100)/100;                 // Días 2026 (base + subidas)
+    r.dias2025=Math.round(((r.diasBase-r.provBase)+(a.p2025||0))*100)/100; // Días 2025 (arrastre + subidas)
+    r.dias=Math.round((r.dias2025+r.prov)*100)/100;                        // Total días
+  });
+}
 function render(){
   if(!base.length){ $('dash').style.display='none'; return; }
+  applyAcum();
   $('dash').style.display='block';
   const rows=filtered();
   const activos=base.filter(r=>norm(r.estado).includes('activo'));
@@ -329,6 +342,28 @@ function fetchExcluidos(){
   const s=document.createElement('script');
   s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Excluidos&_='+Date.now();
   s.onerror=()=>{ /* la pestaña "Excluidos" aún no existe: no pasa nada */ };
+  document.body.appendChild(s);
+}
+// Lee la pestaña "Acumulado 2026" y refresca la nómina para reflejar las provisiones subidas.
+function fetchAcumulado(){
+  const cb='acum_cb_'+Math.floor(Math.random()*1e9);
+  window[cb]=resp=>{ try{ delete window[cb]; }catch(e){}
+    try{
+      const cols=(resp.table.cols||[]).map(c=>norm(c.label));
+      const F=(...p)=>{ for(let i=0;i<cols.length;i++)for(const x of p)if(cols[i].includes(x))return i; return -1; };
+      const iCi=F('ci','cedula'), i25=F('2025'), i26=F('2026');
+      const m={};
+      (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
+        const cc=(iCi>=0&&c[iCi])?(c[iCi].f!=null?c[iCi].f:c[iCi].v):null; const k=ck(cc); if(!k) return;
+        m[k]={ p2025:(i25>=0&&c[i25]&&c[i25].v!=null)?Number(c[i25].v):0, p2026:(i26>=0&&c[i26]&&c[i26].v!=null)?Number(c[i26].v):0 };
+      });
+      acumMap=m;
+    }catch(e){ acumMap={}; }
+    if(base.length) render();
+  };
+  const s=document.createElement('script');
+  s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet='+encodeURIComponent('Acumulado 2026')+'&_='+Date.now();
+  s.onerror=()=>{};
   document.body.appendChild(s);
 }
 let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
@@ -530,8 +565,8 @@ $('iessPeriodosBody').addEventListener('click',async ev=>{
   if(!confirm('¿Borrar la planilla del período '+per+'?\nSe quita del acumulado y se recalcula. Tu base del Sheet NO se toca.')) return;
   btn.disabled=true; btn.textContent='…';
   try{ await api('guardarProvisiones',{periodo:per,filas:[]}); // filas vacías = borrar ese período
-    iessStatus('✓ Planilla '+per+' borrada. El acumulado se recalculó. Tu base sigue intacta.');
-    fetchPeriodos();
+    iessStatus('✓ Planilla '+per+' borrada. El acumulado se recalculó y la nómina volvió atrás. Tu base sigue intacta.');
+    fetchPeriodos(); fetchAcumulado();
   }catch(err){ alert('No se pudo borrar: '+err.message); btn.disabled=false; btn.textContent='Borrar planilla'; }
 });
 $('exclBody').addEventListener('click',async ev=>{
@@ -559,14 +594,15 @@ $('iessSave').onclick=async()=>{
     // Guardado OK: ya quedó acumulado en "Acumulado 2026" → colapsamos el detalle del mes.
     $('iessResult').style.display='none'; $('iessFile').value=''; $('iessPer').value=''; iessData=null;
     b.disabled=false; b.textContent='💾 Guardar provisiones del mes';
-    iessStatus('✓ Provisiones de '+per+' guardadas y acumuladas ('+r.guardadas+' empleados). Se sumaron en la pestaña "Acumulado 2026" del Sheet. Sube otra planilla para el siguiente mes.');
-    fetchPeriodos();
+    iessStatus('✓ Provisiones de '+per+' guardadas y acumuladas ('+r.guardadas+' empleados). Se sumaron a la nómina y a la pestaña "Acumulado 2026". Sube otra planilla para el siguiente mes.');
+    fetchPeriodos(); fetchAcumulado();
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
 warmupApi();
 fetchExcluidos();
 fetchPeriodos();
+fetchAcumulado();
 fetchBase();
 </script>
 </body>
