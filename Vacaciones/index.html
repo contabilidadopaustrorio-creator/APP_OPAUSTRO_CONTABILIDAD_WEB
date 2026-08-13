@@ -127,7 +127,7 @@
     <div id="iessResult" style="display:none">
       <div class="subhead">✅ Provisión del mes <span class="pill" id="iessMatchCnt"></span></div>
       <div class="tablewrap"><table>
-        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th><th class="num">Días IESS</th><th class="num">Días/año</th><th class="num">Días provisión mes</th></tr></thead>
+        <thead><tr><th>#</th><th>Cédula</th><th>Nombre</th><th class="num">Días IESS</th><th class="num">Días/año</th><th class="num">Días provisión mes</th><th class="num">Suma a</th></tr></thead>
         <tbody id="iessMatchBody"></tbody>
         <tfoot id="iessMatchFoot"></tfoot>
       </table></div>
@@ -337,6 +337,18 @@ const padCI=s=>{ const d=String(s==null?'':s).replace(/\D/g,''); return d.length
 function iessStatus(t,err){ const s=$('iessStatus'); s.textContent=t; s.classList.toggle('err',!!err); }
 // Provisión de días del MES = derecho anual * (días trabajados/360)
 function provisionMes(fechaStr,diasIESS){ return Math.round(derechoAnual(fechaStr)*(Number(diasIESS)||0)/360*100)/100; }
+// ¿A qué ciclo pertenece la provisión de este período?
+// Si el período (YYYY-MM) es anterior al aniversario 2026 del empleado → todavía cierra el ciclo 2025.
+// Si es igual o posterior → ya es ciclo 2026. (Misma lógica que la columna Días 2026 de la nómina.)
+function cicloDelPeriodo(fechaStr,periodo){
+  const m=String(fechaStr).match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  const pm=String(periodo).match(/(\d{4})-(\d{1,2})/);
+  if(!m||!pm) return 2026;
+  const mm=+m[2];                      // mes del aniversario
+  const perNum=(+pm[1])*100+(+pm[2]);  // período AAAAMM
+  const anivNum=2026*100+mm;           // aniversario 2026 AAAAMM
+  return perNum>=anivNum ? 2026 : 2025;
+}
 function normPeriodo(v){
   const s=String(v==null?'':v).trim();
   let m=s.match(/(\d{4})[-\/.](\d{1,2})/); if(m) return m[1]+'-'+('0'+m[2]).slice(-2);
@@ -405,7 +417,7 @@ function procesarPlanilla(buf){
     const sueldo=idx.sue>=0?toNum(r[idx.sue]):0;
     const dias=(idx.dia>=0?toNum(r[idx.dia]):0)||30;
     const emp=baseMap[key];
-    if(emp) matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias) });
+    if(emp) matched.push({ ci:rawCi, nombre:emp.nombre||nombre, sueldo, dias, derecho:emp.derecho, provision:provisionMes(emp.fecha,dias), ciclo:cicloDelPeriodo(emp.fecha,per) });
     else nuevos.push({ ci:rawCi, nombre, sueldo, dias });
   });
   const bajas=base.filter(e=>norm(e.estado).includes('activo') && !planillaCis.has(ck(e.ci)) && !excluidos.has(ck(e.ci)));
@@ -421,8 +433,10 @@ function renderIess(){
   $('iessMatchBody').innerHTML=d.matched.map((m,i)=>`<tr>
     <td>${i+1}</td><td style="font-family:var(--mono)">${m.ci}</td><td class="raz">${m.nombre}</td>
     <td class="num">${fmtD(m.dias)}</td><td class="num">${fmtD(m.derecho)}</td>
-    <td class="num" style="font-weight:600;color:var(--teal-deep)">${fmtD(m.provision)}</td></tr>`).join('');
-  $('iessMatchFoot').innerHTML=`<tr><td colspan="5">TOTAL provisión del mes (${d.matched.length})</td><td class="num">${fmtD(d.matched.reduce((a,b)=>a+b.provision,0))}</td></tr>`;
+    <td class="num" style="font-weight:600;color:var(--teal-deep)">${fmtD(m.provision)}</td><td class="num">${m.ciclo}</td></tr>`).join('');
+  const t25=d.matched.filter(m=>m.ciclo===2025).reduce((a,b)=>a+b.provision,0);
+  const t26=d.matched.filter(m=>m.ciclo===2026).reduce((a,b)=>a+b.provision,0);
+  $('iessMatchFoot').innerHTML=`<tr><td colspan="5">TOTAL provisión del mes (${d.matched.length}) · a 2025: ${fmtD(t25)} · a 2026: ${fmtD(t26)}</td><td class="num">${fmtD(t25+t26)}</td><td></td></tr>`;
 
   $('iessNewWrap').style.display=d.nuevos.length?'block':'none';
   $('iessNewCnt').textContent=d.nuevos.length;
@@ -486,8 +500,11 @@ $('iessSave').onclick=async()=>{
   if(!iessData||!iessData.matched.length){ alert('Procesa una planilla primero.'); return; }
   const per=$('iessPer').value.trim(); if(!per){ alert('Falta el periodo (ej. 2026-07).'); return; }
   const b=$('iessSave'); b.disabled=true; b.textContent='Guardando…';
-  try{ const r=await api('guardarProvisiones',{periodo:per,filas:iessData.matched.map(m=>({ci:m.ci,nombre:m.nombre,sueldo:m.sueldo,dias:m.dias,provision:m.provision}))});
-    b.textContent='✓ Guardado ('+r.guardadas+')'; setTimeout(()=>{ b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; },2500);
+  try{ const r=await api('guardarProvisiones',{periodo:per,filas:iessData.matched.map(m=>({ci:m.ci,nombre:m.nombre,sueldo:m.sueldo,dias:m.dias,provision:m.provision,ciclo:m.ciclo}))});
+    // Guardado OK: ya quedó acumulado en "Acumulado 2026" → colapsamos el detalle del mes.
+    $('iessResult').style.display='none'; $('iessFile').value=''; $('iessPer').value=''; iessData=null;
+    b.disabled=false; b.textContent='💾 Guardar provisiones del mes';
+    iessStatus('✓ Provisiones de '+per+' guardadas y acumuladas ('+r.guardadas+' empleados). Se sumaron en la pestaña "Acumulado 2026" del Sheet. Sube otra planilla para el siguiente mes.');
   }catch(err){ alert('No se pudo guardar: '+err.message); b.disabled=false; b.textContent='💾 Guardar provisiones del mes'; }
 };
 
