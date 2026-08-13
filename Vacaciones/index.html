@@ -405,9 +405,10 @@ function fetchPeriodos(){
       const map={};
       (resp.table.rows||[]).forEach(r=>{ const c=r.c||[];
         const pc=c[0]; const per=pc?(pc.f!=null?pc.f:pc.v):''; if(!per) return;
-        const prov=(c[5]&&c[5].v!=null)?Number(c[5].v):0;
+        const p25=(c[5]&&c[5].v!=null)?Number(c[5].v):0;   // Prov 2025
+        const p26=(c[6]&&c[6].v!=null)?Number(c[6].v):0;   // Prov 2026
         if(!map[per]) map[per]={periodo:String(per),emp:0,dias:0};
-        map[per].emp++; map[per].dias+=prov;
+        map[per].emp++; map[per].dias+=(p25+p26);           // total días provisión del mes
       });
       periodosList=Object.keys(map).sort().map(k=>map[k]);
     }catch(e){ periodosList=[]; }
