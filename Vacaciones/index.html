@@ -140,6 +140,8 @@
           <thead><tr><th>Cédula</th><th>Nombre</th><th>Fecha ingreso</th><th>Cargo</th><th>Departamento</th><th></th></tr></thead>
           <tbody id="iessNewBody"></tbody>
         </table></div>
+        <datalist id="dlCargos"></datalist>
+        <datalist id="dlDeptos"></datalist>
       </div>
 
       <div id="iessBajaWrap" style="display:none">
@@ -251,9 +253,14 @@ function parseGviz(resp){
 }
 function opts(sel,vals){ const el=$(sel); const cur=el.value; el.innerHTML='<option value="">Todos</option>'+vals.map(v=>`<option>${v}</option>`).join(''); el.value=cur; }
 function buildFilters(){
-  opts('fDep',[...new Set(base.map(r=>r.depto))].filter(x=>x&&x!=='—').sort());
-  opts('fCar',[...new Set(base.map(r=>r.cargo))].filter(x=>x&&x!=='—').sort());
+  const deptos=[...new Set(base.map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
+  const cargos=[...new Set(base.map(r=>r.cargo))].filter(x=>x&&x!=='—').sort();
+  opts('fDep',deptos);
+  opts('fCar',cargos);
   opts('fEst',[...new Set(base.map(r=>r.estado))].filter(Boolean).sort());
+  const esc=v=>String(v).replace(/"/g,'&quot;');
+  if($('dlCargos')) $('dlCargos').innerHTML=cargos.map(v=>`<option value="${esc(v)}"></option>`).join('');
+  if($('dlDeptos')) $('dlDeptos').innerHTML=deptos.map(v=>`<option value="${esc(v)}"></option>`).join('');
 }
 function filtered(){
   const dep=$('fDep').value, car=$('fCar').value, est=$('fEst').value, q=norm($('fBuscar').value);
@@ -422,8 +429,8 @@ function renderIess(){
   $('iessNewBody').innerHTML=d.nuevos.map((n,i)=>`<tr>
     <td style="font-family:var(--mono)">${n.ci}</td><td class="raz">${n.nombre}</td>
     <td><input type="search" id="nf_${i}" placeholder="dd/mm/aaaa" style="min-width:110px"></td>
-    <td><input type="search" id="nc_${i}" placeholder="Cargo" style="min-width:120px"></td>
-    <td><input type="search" id="nd_${i}" placeholder="Departamento" style="min-width:120px"></td>
+    <td><input type="search" id="nc_${i}" placeholder="Cargo" list="dlCargos" style="min-width:120px"></td>
+    <td><input type="search" id="nd_${i}" placeholder="Departamento" list="dlDeptos" style="min-width:120px"></td>
     <td><button class="btn" data-add="${i}">Agregar</button> <button class="btn ghost" data-excl="${i}" title="No provisionar (pasante)">Excluir</button></td></tr>`).join('');
 
   $('iessBajaWrap').style.display=d.bajas.length?'block':'none';
