@@ -44,6 +44,7 @@
   .empty{padding:30px;text-align:center;color:var(--faint);font-size:13.5px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>try{if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');}catch(e){}</script>
 <style>html.embed body{background:#f4f6f9}</style>
 </head>
@@ -53,14 +54,14 @@
   <p class="sub">Compara la <b>fecha de emisión</b> vs la <b>fecha de autorización</b> de tus comprobantes emitidos y marca los autorizados en <b>día distinto</b>.</p>
 
   <div class="info-box">
-    ✅ Sube el <b>TXT de comprobantes emitidos</b> que descargas del portal del SRI (tabulado con encabezado). La app detecta sola las columnas de emisión y autorización, y te marca los que se autorizaron en un día diferente al de emisión. Puedes subir varios TXT a la vez.
+    ✅ Sube el <b>TXT del listado</b> del SRI, o el <b>ZIP de la descarga masiva</b>, o los <b>XMLs</b> (uno o varios). La app lee de cada comprobante la fecha de emisión y la de autorización, y marca los que se autorizaron en un <b>día distinto</b>. Del ZIP/XML extrae ambas fechas aunque el TXT no traiga la de autorización.
   </div>
 
   <div class="card">
     <div class="dropzone" id="dz">
-      <input type="file" id="file" accept=".txt,.csv" multiple hidden>
+      <input type="file" id="file" accept=".txt,.csv,.xml,.zip" multiple hidden>
       <div class="dz-title">Arrastra o haz clic para seleccionar</div>
-      <div class="dz-sub">TXT del portal SRI (comprobantes emitidos) — múltiples a la vez</div>
+      <div class="dz-sub">TXT del listado, o el ZIP de la descarga masiva, o XMLs — múltiples a la vez</div>
     </div>
     <div class="status" id="status" style="margin-top:10px"></div>
   </div>
@@ -145,6 +146,32 @@ function parseTXT(text, fname){
   return {rows, err:''};
 }
 
+// ── Lector de XML autorizado del SRI (cada XML trae emisión y autorización) ──
+function xmlTxt(doc, tag){ const e=doc.getElementsByTagName(tag)[0]; return e?e.textContent.trim():''; }
+function parseXML(raw){
+  try{
+    const dp=new DOMParser();
+    const outer=dp.parseFromString(raw,'text/xml');
+    let autN=0, autNum='';
+    const fa=outer.getElementsByTagName('fechaAutorizacion')[0]; if(fa) autN=fechaNum(fa.textContent);
+    const na=outer.getElementsByTagName('numeroAutorizacion')[0]; if(na) autNum=na.textContent.trim();
+    let comp=outer; // si viene envuelto en <autorizacion><comprobante>...</comprobante>, parsear el interno
+    const cel=outer.getElementsByTagName('comprobante')[0];
+    if(cel && cel.textContent && cel.textContent.indexOf('<')>=0) comp=dp.parseFromString(cel.textContent,'text/xml');
+    const emiN=fechaNum(xmlTxt(comp,'fechaEmision'));
+    if(!emiN) return null;
+    const estab=xmlTxt(comp,'estab'), pto=xmlTxt(comp,'ptoEmi'), sec=xmlTxt(comp,'secuencial');
+    const serie=(estab&&sec)?(estab+'-'+pto+'-'+sec):(sec||'—');
+    const root=(comp.documentElement&&comp.documentElement.nodeName)||'';
+    const tmap={factura:'Factura',notaCredito:'Nota crédito',notaDebito:'Nota débito',comprobanteRetencion:'Retención',guiaRemision:'Guía',liquidacionCompra:'Liq. compra'};
+    return {
+      tipo:tmap[root]||'Doc', serie:serie,
+      cliente:xmlTxt(comp,'razonSocialComprador')||xmlTxt(comp,'razonSocialSujetoRetenido')||xmlTxt(comp,'razonSocial')||'',
+      emiN:emiN, autN:autN, total:toNum(xmlTxt(comp,'importeTotal')||xmlTxt(comp,'valorTotal')||xmlTxt(comp,'valorModificacion')||'0'), autNum:autNum
+    };
+  }catch(e){ return null; }
+}
+
 function clasifica(d){
   if(!d.autN) return 'sin';
   return d.emiN===d.autN ? 'ok' : 'dif';
@@ -156,22 +183,29 @@ $('dz').ondragleave=()=>$('dz').classList.remove('over');
 $('dz').ondrop=e=>{e.preventDefault();$('dz').classList.remove('over');handleFiles(e.dataTransfer.files);};
 $('file').onchange=e=>handleFiles(e.target.files);
 
-function handleFiles(files){
-  const list=[...files].filter(f=>/\.(txt|csv)$/i.test(f.name));
-  if(!list.length){ status('Selecciona archivos .txt del SRI.',true); return; }
+async function handleFiles(files){
+  const list=[...files].filter(f=>/\.(txt|csv|xml|zip)$/i.test(f.name));
+  if(!list.length){ status('Sube el TXT del listado, el ZIP masivo, o XMLs del SRI.',true); return; }
   status('Leyendo '+list.length+' archivo(s)…');
-  docs=[]; let pend=list.length, errs=[];
-  list.forEach(f=>{
-    const r=new FileReader();
-    r.onload=ev=>{
-      const res=parseTXT(ev.target.result, f.name);
-      if(res.err) errs.push(f.name+': '+res.err);
-      docs=docs.concat(res.rows);
-      if(--pend===0) finish(errs);
-    };
-    r.onerror=()=>{ errs.push(f.name+': no se pudo leer'); if(--pend===0) finish(errs); };
-    r.readAsText(f,'utf-8');
-  });
+  docs=[]; const errs=[];
+  for(const f of list){
+    try{
+      const ext=(f.name.split('.').pop()||'').toLowerCase();
+      if(ext==='zip'){
+        if(typeof JSZip==='undefined'){ errs.push('No cargó la librería ZIP (revisa tu conexión).'); continue; }
+        const zip=await JSZip.loadAsync(await f.arrayBuffer());
+        const names=Object.keys(zip.files).filter(n=>/\.xml$/i.test(n) && !zip.files[n].dir);
+        for(const n of names){ const d=parseXML(await zip.files[n].async('string')); if(d) docs.push(d); }
+      } else if(ext==='xml'){
+        const d=parseXML(await f.text()); if(d) docs.push(d);
+      } else {
+        const res=parseTXT(await f.text(), f.name);
+        if(res.err) errs.push(f.name+': '+res.err);
+        docs=docs.concat(res.rows);
+      }
+    }catch(e){ errs.push(f.name+': '+(e.message||'error')); }
+  }
+  finish(errs);
 }
 function finish(errs){
   if(!docs.length){ status((errs[0]||'No se leyeron documentos.'),true); $('result').style.display='none'; return; }
