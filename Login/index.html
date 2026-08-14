@@ -2658,13 +2658,6 @@
         path: "../ConciliadorRetenciones/index.html?embed=1",
         embed: true
       },
-      AutorizacionesSRI: {
-        label: "Autorizaciones SRI",
-        symbol: "report",
-        icon: "../Recuros_imagenes/reporte.png?v=1.0.0",
-        path: "../AutorizacionesSRI/index.html?embed=1",
-        embed: true
-      },
       Vacaciones: {
         label: "Control de vacaciones",
         symbol: "day",
@@ -2844,7 +2837,7 @@
         label: "Contabilidad",
         icon: "&#128202;",
         iconPath: "../Recuros_imagenes/reporte.png?v=1.0.0",
-        modules: ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones", "AutorizacionesSRI", "Vacaciones"]
+        modules: ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones", "Vacaciones"]
       }
     ];
 
@@ -3144,7 +3137,7 @@
 
     function modulesForRole(role) {
       const normalized = normalizeRoleName(role);
-      const CONTAB = ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones", "AutorizacionesSRI", "Vacaciones"];
+      const CONTAB = ["ControlGastos", "ConciliadorSRI", "ConciliadorRetenciones", "Vacaciones"];
       if (normalized === "ADMIN" || normalized === "ADMINISTRADOR") return [...ACCESS_CONTROL_MODULES, ...CONTAB];
       if (normalized === "CONTADOR") return CONTAB;
       if (normalized === "ASISTENTE_CONTABLE" || normalized === "ASISTENTE CONTABLE" || normalized === "ASISTENTECONTABLE") return CONTAB;
