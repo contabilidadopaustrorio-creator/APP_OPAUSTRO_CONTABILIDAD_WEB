@@ -1,8 +1,8 @@
 ﻿{
-    "name":  "OPAUSTRO",
-    "short_name":  "OPAUSTRO",
+    "name":  "OPAUSTRO Contabilidad",
+    "short_name":  "Contabilidad",
     "version":  "1.0.0",
-    "description":  "Sistema corporativo OPAUSTRO",
+    "description":  "Sistema contable OPAUSTRO",
     "start_url":  "./Login/index.html",
     "scope":  "./",
     "display":  "standalone",

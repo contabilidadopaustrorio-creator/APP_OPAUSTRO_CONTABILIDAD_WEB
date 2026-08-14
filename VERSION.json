@@ -1,17 +1,15 @@
 {
-    "app": "OPAUSTRO",
-    "version": "1.0.9",
-    "label": "OPAUSTRO v1.0.9 - Control de modulos (roles y permisos)",
+    "app": "OPAUSTRO Contabilidad",
+    "version": "1.0.0",
+    "label": "OPAUSTRO Contabilidad v1.0.0",
     "channel": "oficial",
-    "publishedAt": "2026-07-30",
+    "publishedAt": "2026-08-14",
     "notes": [
-        "Nuevo: modulo \"Control de modulos\" dentro de Control de accesos (solo admin y Gerencia). Permite ver y editar, rol por rol, que modulos y submodulos tiene activos, activarlos/desactivarlos, renombrar el rol o eliminarlo si ya no se usa.",
-        "Nuevo: boton \"Anadir rol\" junto a \"Anadir usuario\" en Control de usuarios, para crear un rol nuevo eligiendo directamente sus modulos y submodulos.",
-        "El campo Rol de \"Anadir usuario\" ahora solo permite elegir un rol ya existente (antes tambien dejaba escribir uno nuevo ahi mismo).",
-        "Corrige la version mostrada en el pie de la pantalla de inicio de sesion: antes quedaba fija en un numero de version anterior aunque se publicara una nueva; ahora se actualiza con la version realmente publicada.",
-        "Requiere republicar manualmente Login/Code.gs (oficial y pruebas) en el editor de Apps Script — Gestionar implementaciones > Editar > Version: Nueva version > Implementar; el link /exec no cambia."
+        "Lanzamiento de la app de Contabilidad: Control de gastos, Conciliador SRI, Conciliador de retenciones y Control de vacaciones.",
+        "Vacaciones: nómina, provisión mensual IESS, días tomados, salidas/liquidación y planificación con calendario.",
+        "Nuevo login empresarial y colores acoplados en todos los módulos."
     ],
-    "releaseKey": "1.0.9",
+    "releaseKey": "1.0.0",
     "forceUpdate": false,
     "rollback": false
 }
