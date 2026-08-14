@@ -834,10 +834,10 @@ function renderPlanes(){
   wrap.style.display='block';
   $('pCnt').textContent=planList.length;
   const rows=planList.slice().sort((a,b)=>b.order-a.order);
-  $('pListaBody').innerHTML=rows.map(x=>`<tr${x.esUltimo?'':' style="opacity:.55"'}>
+  $('pListaBody').innerHTML=rows.map(x=>`<tr>
     <td style="font-family:var(--mono)">${x.ci}</td><td class="raz">${x.nombre||'—'}</td>
     <td class="num">${fmtD(x.dias)}</td><td>${x.desde||'—'}</td><td>${x.hasta||'—'}</td>
-    <td>${x.esUltimo?`<button class="btn ghost" data-delplan="${x.ci}" data-op="${x.opId||''}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el más reciente">🔒 Deshacer</button>'}</td></tr>`).join('');
+    <td style="white-space:nowrap"><button class="btn ghost" data-editplan="${x.ci}" data-op="${x.opId||''}">Editar</button> ${x.esUltimo?`<button class="btn ghost" data-delplan="${x.ci}" data-op="${x.opId||''}">Deshacer</button>`:'<button class="btn ghost" disabled style="opacity:.4;cursor:not-allowed" title="Primero deshaz el más reciente de este empleado">🔒 Deshacer</button>'}</td></tr>`).join('');
 }
 let periodosList=[]; // planillas (períodos) guardadas en la pestaña Provisiones
 function fetchPeriodos(){
@@ -1176,6 +1176,28 @@ $('pEmpList').addEventListener('dragstart',ev=>{ const chip=ev.target.closest('.
 $('pCal').addEventListener('dragover',ev=>{ if(ev.target.closest('.cal-cell[data-date]')){ ev.preventDefault(); try{ ev.dataTransfer.dropEffect='copy'; }catch(e){} } });
 $('pCal').addEventListener('drop',ev=>{ const cell=ev.target.closest('.cal-cell[data-date]'); if(!cell) return; ev.preventDefault(); let ci=dragCi; try{ ci=ci||ev.dataTransfer.getData('text/plain'); }catch(e){} dragCi=null; if(ci) planificarEn(ci, cell.dataset.date); });
 $('pListaBody').addEventListener('click',async ev=>{
+  const eb=ev.target.closest('[data-editplan]');
+  if(eb){
+    const op=eb.dataset.op;
+    const p=planList.find(x=>x.opId===op) || planList.find(x=>ck(x.ci)===ck(eb.dataset.editplan)&&x.esUltimo);
+    if(!p){ alert('No encontrado.'); return; }
+    const r=empByCi(p.ci); if(!r){ alert('Empleado no encontrado.'); return; }
+    applyAcum();
+    const maxN=Math.round((disponiblePlan(r)+p.dias)*100)/100; // disponible + lo que ya usa este plan
+    const nStr=prompt('Editar días de '+p.nombre+'\n(desde '+(p.desde||'?')+') — máximo '+fmtD(maxN)+' días del 2025', p.dias);
+    if(nStr===null) return;
+    const n=Number(nStr); if(!(n>0)){ alert('Días inválidos.'); return; }
+    if(n>maxN+0.001){ alert('Máximo '+fmtD(maxN)+' días (solo del 2025).'); return; }
+    const pd=parseDMY(p.desde); if(!pd){ alert('Fecha "desde" inválida.'); return; }
+    const desde=new Date(pd.yy,pd.mm-1,pd.dd);
+    const hasta=new Date(desde.getTime()); hasta.setDate(hasta.getDate()+Math.ceil(n)-1);
+    eb.disabled=true; eb.textContent='…';
+    try{ await api('editarPlan',{ci:p.ci,opId:op,dias:n,desde:ymd(desde),hasta:ymd(hasta)});
+      $('pStatus').classList.remove('err'); $('pStatus').textContent='✓ Editado: '+p.nombre+' → '+fmtD(n)+' días ('+ymd(desde)+' → '+ymd(hasta)+').';
+      fetchPlanes();
+    }catch(err){ alert('No se pudo editar: '+err.message); eb.disabled=false; eb.textContent='Editar'; }
+    return;
+  }
   const btn=ev.target.closest('[data-delplan]'); if(!btn) return;
   if(!confirm('¿Deshacer esta planificación? Los días vuelven a estar disponibles.')) return;
   btn.disabled=true; btn.textContent='…';
