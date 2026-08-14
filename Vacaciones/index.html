@@ -101,6 +101,7 @@
     <button data-tab="tomados">➖ Días tomados</button>
     <button data-tab="salidas">🚪 Salidas</button>
     <button data-tab="plan">🗓️ Planificación</button>
+    <button data-tab="calview">📅 Calendario</button>
   </div>
 
   <div class="tab-panel on" data-panel="nomina">
@@ -302,6 +303,23 @@
   </div>
   </div><!-- /panel plan -->
 
+  <div class="tab-panel" data-panel="calview">
+  <div class="card" id="calviewCard">
+    <h2>📅 Calendario de vacaciones</h2>
+    <p class="sub" style="margin:0 0 10px">Vista de las vacaciones planificadas (solo lectura). Filtra por área y cargo. Los días en <b style="color:#b91c1c">rojo</b> exceden el cupo del cargo. Pasa el mouse sobre un nombre para ver sus fechas.</p>
+    <div class="filters" style="margin-bottom:10px">
+      <div class="fg"><label>Departamento</label><select id="vDep"><option value="">Todos</option></select></div>
+      <div class="fg"><label>Cargo</label><select id="vCar"><option value="">Todos</option></select></div>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="vPrev">‹ Mes</button>
+      <b id="vMesLbl" style="align-self:center;font-size:15px;text-transform:capitalize;min-width:150px;text-align:center"></b>
+      <button class="btn ghost" id="vNext">Mes ›</button>
+    </div>
+    <div id="vCal"></div>
+    <div id="vResumen" class="sub" style="margin-top:10px"></div>
+  </div>
+  </div><!-- /panel calview -->
+
   <footer>La nómina se lee en vivo desde el Sheet base. Al actualizar el Sheet y pulsar «Recargar», se refleja aquí.</footer>
 </div>
 
@@ -414,7 +432,7 @@ function buildFilters(){
   const esc=v=>String(v).replace(/"/g,'&quot;');
   if($('dlCargos')) $('dlCargos').innerHTML=cargos.map(v=>`<option value="${esc(v)}"></option>`).join('');
   if($('dlDeptos')) $('dlDeptos').innerHTML=deptos.map(v=>`<option value="${esc(v)}"></option>`).join('');
-  fillTom(); fillSal(); fillPlan();
+  fillTom(); fillSal(); fillPlan(); fillVista();
 }
 function filtered(){
   const dep=$('fDep').value, car=$('fCar').value, est=$('fEst').value, q=norm($('fBuscar').value);
@@ -701,7 +719,7 @@ function fetchCupos(){
       });
       cuposMap=m;
     }catch(e){ cuposMap={}; }
-    renderCupoInfo(); renderPlanUI();
+    renderCupoInfo(); renderPlanUI(); renderVistaCal();
   };
   const s=document.createElement('script');
   s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Cupos&_='+Date.now();
@@ -733,7 +751,7 @@ function fetchPlanes(){
       list.forEach(x=>{ x.esUltimo=(x.order===lastByKey[x.key]); });
       planMap=map; planList=list;
     }catch(e){ planMap={}; planList=[]; }
-    renderPlanUI(); renderPlanes();
+    renderPlanUI(); renderPlanes(); renderVistaCal();
   };
   const s=document.createElement('script');
   s.src='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json;responseHandler:'+cb+'&headers=1&sheet=Planificacion&_='+Date.now();
@@ -773,12 +791,11 @@ function renderEmpList(){
   }).join('')||'<div class="sub">Sin empleados.</div>';
 }
 function dowMon(d){ return (d.getDay()+6)%7; } // 0=Lun … 6=Dom
-function renderCalendar(){
-  if(!planMonth||!$('pCal')) return;
-  const y=planMonth.y, m=planMonth.m;
-  $('pMesLbl').textContent=new Date(y,m,1).toLocaleDateString('es-EC',{month:'long',year:'numeric'});
+// Construye el HTML del calendario de un mes con los planes filtrados. dropable=true agrega data-date (para arrastrar).
+function calHtml(dep,car,mo,dropable){
+  const y=mo.y, m=mo.m;
   const ndays=new Date(y,m+1,0).getDate(), lead=dowMon(new Date(y,m,1));
-  const vis=planesVisibles();
+  const vis=planList.filter(p=>{ const e=empByCi(p.ci); const d2=e?e.depto:'', c2=e?e.cargo:(p.cargo||''); return (!dep||d2===dep)&&(!car||c2===car); });
   const dows=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
   let html='<div class="cal-grid">'+dows.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=0;i<lead;i++) html+='<div class="cal-cell empty"></div>';
@@ -788,14 +805,43 @@ function renderCalendar(){
     const cover=vis.filter(p=>p.dN&&p.hN&&dNum>=p.dN&&dNum<=p.hN);
     const porCargo={}; cover.forEach(p=>{ const cg=norm(p.cargo); porCargo[cg]=(porCargo[cg]||0)+1; });
     let over=false; Object.keys(porCargo).forEach(cg=>{ const mx=cuposMap[cg]||0; if(mx>0&&porCargo[cg]>mx) over=true; });
-    const chips=cover.slice(0,4).map(p=>{ const cg=norm(p.cargo); const ov=((cuposMap[cg]||0)>0 && porCargo[cg]>(cuposMap[cg]||0)); return `<span class="cal-p ${ov?'ov':''}" title="${p.nombre} · ${p.cargo}&#10;${p.desde} → ${p.hasta} · ${fmtD(p.dias)} días">${String(p.nombre).split(' ')[0]}</span>`; }).join('');
+    const chips=cover.slice(0,4).map(p=>{ const cg=norm(p.cargo); const ov=((cuposMap[cg]||0)>0&&porCargo[cg]>(cuposMap[cg]||0)); return `<span class="cal-p ${ov?'ov':''}" title="${p.nombre} · ${p.cargo}&#10;${p.desde} → ${p.hasta} · ${fmtD(p.dias)} días">${String(p.nombre).split(' ')[0]}</span>`; }).join('');
     const mas=cover.length>4?`<span class="cal-p">+${cover.length-4}</span>`:'';
-    html+=`<div class="cal-cell ${over?'over':''}" data-date="${dNum}"><div class="dn ${we?'we':''}">${day}</div>${chips}${mas}</div>`;
+    html+=`<div class="cal-cell ${over?'over':''}"${dropable?` data-date="${dNum}"`:''}><div class="dn ${we?'we':''}">${day}</div>${chips}${mas}</div>`;
   }
-  html+='</div>';
-  $('pCal').innerHTML=html;
+  return html+'</div>';
+}
+function renderCalendar(){
+  if(!planMonth||!$('pCal')) return;
+  $('pMesLbl').textContent=new Date(planMonth.y,planMonth.m,1).toLocaleDateString('es-EC',{month:'long',year:'numeric'});
+  $('pCal').innerHTML=calHtml($('pDep').value,$('pCar').value,planMonth,true);
 }
 function renderPlanUI(){ renderEmpList(); renderCalendar(); }
+
+// ---- Pestaña Calendario (solo lectura) ----
+let vMonth=null;
+function fillVistaCargos(){
+  const dep=$('vDep').value;
+  const cargos=[...new Set(activosBase().filter(r=>!dep||r.depto===dep).map(r=>r.cargo))].filter(x=>x&&x!=='—').sort();
+  const el=$('vCar'); const cur=el.value;
+  el.innerHTML='<option value="">Todos</option>'+cargos.map(v=>`<option>${v}</option>`).join('');
+  el.value=cargos.indexOf(cur)>=0?cur:'';
+}
+function fillVista(){
+  if(!$('vDep')) return;
+  const deptos=[...new Set(activosBase().map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
+  const el=$('vDep'); const cur=el.value; el.innerHTML='<option value="">Todos</option>'+deptos.map(v=>`<option>${v}</option>`).join(''); el.value=cur;
+  fillVistaCargos(); renderVistaCal();
+}
+function renderVistaCal(){
+  if(!$('vCal')) return;
+  if(!vMonth) vMonth={y:new Date().getFullYear(),m:new Date().getMonth()};
+  $('vMesLbl').textContent=new Date(vMonth.y,vMonth.m,1).toLocaleDateString('es-EC',{month:'long',year:'numeric'});
+  $('vCal').innerHTML=calHtml($('vDep').value,$('vCar').value,vMonth,false);
+  const dep=$('vDep').value, car=$('vCar').value, mn=vMonth.y*100+(vMonth.m+1);
+  const enMes=planList.filter(p=>{ if(!p.dN||!p.hN) return false; const e=empByCi(p.ci); const d2=e?e.depto:'',c2=e?e.cargo:(p.cargo||''); if((dep&&d2!==dep)||(car&&c2!==car)) return false; return Math.floor(p.dN/100)<=mn && Math.floor(p.hN/100)>=mn; });
+  $('vResumen').textContent=enMes.length?(enMes.length+' persona(s) con vacaciones que tocan este mes.'):'Nadie con vacaciones este mes (según filtros).';
+}
 function renderCupoInfo(){
   if($('pCar').value){ const mx=cupoDe($('pCar').value); $('pCupo').value=mx||''; }
   const cfg=[...new Set(activosBase().map(r=>r.cargo))].filter(c=>cupoDe(c)>0).map(c=>c+'='+cupoDe(c));
@@ -1165,6 +1211,10 @@ $('pDep').onchange=()=>{ fillPlanCargos(); renderPlanUI(); renderCupoInfo(); };
 $('pCar').onchange=()=>{ renderPlanUI(); renderCupoInfo(); };
 $('pPrev').onclick=()=>{ planMonth.m--; if(planMonth.m<0){ planMonth.m=11; planMonth.y--; } renderCalendar(); };
 $('pNext').onclick=()=>{ planMonth.m++; if(planMonth.m>11){ planMonth.m=0; planMonth.y++; } renderCalendar(); };
+$('vDep').onchange=()=>{ fillVistaCargos(); renderVistaCal(); };
+$('vCar').onchange=renderVistaCal;
+$('vPrev').onclick=()=>{ if(!vMonth) return; vMonth.m--; if(vMonth.m<0){ vMonth.m=11; vMonth.y--; } renderVistaCal(); };
+$('vNext').onclick=()=>{ if(!vMonth) return; vMonth.m++; if(vMonth.m>11){ vMonth.m=0; vMonth.y++; } renderVistaCal(); };
 $('pCupoSave').onclick=async()=>{
   const car=$('pCar').value; if(!car){ alert('Elige un cargo para ponerle cupo.'); return; }
   const mx=Number($('pCupo').value||0);
