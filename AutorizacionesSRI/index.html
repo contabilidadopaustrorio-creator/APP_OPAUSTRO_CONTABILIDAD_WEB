@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autorizaciones SRI — OPAUSTRO</title>
+<style>
+  :root{--bg:#f4f6f9;--card:#fff;--line:#e5e7eb;--line2:#d0d5dd;--ink:#16232b;--muted:#6b7280;--faint:#9aa3ad;
+    --blue:#0C447C;--blue-d:#042C53;--blue-wash:#E6F1FB;--ok:#16a34a;--ok-l:#dcfce7;--warn:#b45309;--warn-l:#fef3c7;--red:#dc2626;--red-l:#fee2e2;
+    --sans:system-ui,"Segoe UI",Roboto,sans-serif;--mono:"Consolas",ui-monospace,monospace;}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg)}
+  body{font-family:var(--sans);color:var(--ink);font-size:14px;line-height:1.5}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 20px 60px}
+  h1{font-size:22px;font-weight:700;margin:0 0 3px;display:flex;align-items:center;gap:8px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .info-box{background:var(--blue-wash);border:1px solid #b5d4f4;border-radius:8px;padding:.65rem 1rem;font-size:12.5px;color:var(--blue-d);margin-bottom:14px;line-height:1.6}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 2px rgba(16,35,43,.04)}
+  .dropzone{border:2px dashed var(--line2);border-radius:10px;padding:26px;text-align:center;cursor:pointer;transition:all .15s;background:#fbfcfd}
+  .dropzone:hover,.dropzone.over{background:var(--blue-wash);border-color:var(--blue)}
+  .dz-title{color:var(--blue);font-weight:600;font-size:14px}
+  .dz-sub{color:var(--faint);font-size:12px;margin-top:3px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--blue)}
+  .kpi.w::before{background:var(--warn)} .kpi.g::before{background:var(--ok)} .kpi.r::before{background:var(--red)}
+  .kpi .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);font-weight:600}
+  .kpi .big{font-size:24px;font-weight:700;margin-top:4px}
+  .tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:10px;gap:0}
+  .tab{padding:8px 15px;font-size:13px;cursor:pointer;border:none;border-bottom:2px solid transparent;color:var(--muted);background:none;font-family:inherit;white-space:nowrap;font-weight:500}
+  .tab:hover{color:var(--blue)} .tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{background:#f8fafc;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--faint);font-weight:600;border-bottom:1px solid var(--line);white-space:nowrap}
+  td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tr:hover td{background:#fbfcfd}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px}
+  .p-ok{background:var(--ok-l);color:#166534} .p-warn{background:var(--warn-l);color:#92400e} .p-red{background:var(--red-l);color:#991b1b}
+  .btn{font:inherit;font-size:13px;font-weight:600;padding:8px 15px;border-radius:8px;cursor:pointer;border:1px solid var(--blue);background:var(--blue);color:#fff}
+  .btn.ghost{background:#fff;color:var(--blue-d);border-color:var(--line2)}
+  .status{font-size:12.5px;color:var(--muted);margin:0 0 12px;min-height:16px}
+  .status.err{color:#b91c1c;font-weight:600}
+  .empty{padding:30px;text-align:center;color:var(--faint);font-size:13.5px}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>try{if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');}catch(e){}</script>
+<style>html.embed body{background:#f4f6f9}</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📋 Autorizaciones SRI</h1>
+  <p class="sub">Compara la <b>fecha de emisión</b> vs la <b>fecha de autorización</b> de tus comprobantes emitidos y marca los autorizados en <b>día distinto</b>.</p>
+
+  <div class="info-box">
+    ✅ Sube el <b>TXT de comprobantes emitidos</b> que descargas del portal del SRI (tabulado con encabezado). La app detecta sola las columnas de emisión y autorización, y te marca los que se autorizaron en un día diferente al de emisión. Puedes subir varios TXT a la vez.
+  </div>
+
+  <div class="card">
+    <div class="dropzone" id="dz">
+      <input type="file" id="file" accept=".txt,.csv" multiple hidden>
+      <div class="dz-title">Arrastra o haz clic para seleccionar</div>
+      <div class="dz-sub">TXT del portal SRI (comprobantes emitidos) — múltiples a la vez</div>
+    </div>
+    <div class="status" id="status" style="margin-top:10px"></div>
+  </div>
+
+  <div id="result" style="display:none">
+    <div class="kpis">
+      <div class="kpi"><div class="lab">Documentos</div><div class="big" id="kTot">0</div></div>
+      <div class="kpi g"><div class="lab">Autorizados mismo día</div><div class="big" id="kOk">0</div></div>
+      <div class="kpi w"><div class="lab">Autorizados otro día</div><div class="big" id="kDif">0</div></div>
+      <div class="kpi r"><div class="lab">Sin autorización</div><div class="big" id="kSin">0</div></div>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab on" data-f="dif" id="tabDif">⚠ Autorizados otro día <span id="cDif"></span></button>
+        <button class="tab" data-f="all">Todos <span id="cAll"></span></button>
+        <button class="tab" data-f="ok">✓ Mismo día</button>
+        <button class="tab" data-f="sin">✗ Sin autorización</button>
+        <div style="flex:1"></div>
+        <button class="btn ghost" id="btnExport" style="margin:4px 0">⬇ Excel</button>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Comprobante</th><th>Cliente</th><th>F. emisión</th><th>F. autorización</th><th class="num">Días</th><th class="num">Total</th><th>Estado</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="empty" style="display:none">Sin documentos en esta vista.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const up=s=>String(s==null?'':s).toUpperCase();
+const fmt$=n=>'$'+Number(n||0).toLocaleString('es-EC',{minimumFractionDigits:2,maximumFractionDigits:2});
+let docs=[], filt='dif';
+function status(t,err){ const s=$('status'); s.textContent=t; s.classList.toggle('err',!!err); }
+
+// Extrae la parte fecha (yyyymmdd) de formatos dd/mm/aaaa, aaaa-mm-dd, con o sin hora.
+function fechaNum(s){
+  const t=String(s==null?'':s).trim();
+  let m=t.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);          // aaaa-mm-dd
+  if(m) return (+m[1])*10000+(+m[2])*100+(+m[3]);
+  m=t.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);              // dd/mm/aaaa
+  if(m) return (+m[3])*10000+(+m[2])*100+(+m[1]);
+  return 0;
+}
+function fechaTxt(s){ const n=fechaNum(s); if(!n) return String(s||'—'); const y=Math.floor(n/10000),mo=Math.floor(n/100)%100,d=n%100; return ('0'+d).slice(-2)+'/'+('0'+mo).slice(-2)+'/'+y; }
+function difDias(a,b){ if(!a||!b) return null; const da=new Date(Math.floor(a/10000),Math.floor(a/100)%100-1,a%100), db=new Date(Math.floor(b/10000),Math.floor(b/100)%100-1,b%100); return Math.round((db-da)/86400000); }
+const toNum=x=>{ const n=parseFloat(String(x==null?'':x).replace(/[^0-9.,-]/g,'').replace(/\.(?=\d{3}\b)/g,'').replace(',','.')); return isNaN(n)?0:n; };
+
+function parseTXT(text, fname){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return {rows:[], err:'archivo vacío'};
+  const sep = lines[0].indexOf('\t')>=0 ? '\t' : (lines[0].indexOf(';')>=0 ? ';' : ',');
+  const H=lines[0].split(sep).map(h=>up(h).replace(/^﻿/,'').trim());
+  const find=(...preds)=>{ for(let i=0;i<H.length;i++){ for(const p of preds){ if(p.every(x=>H[i].includes(x))) return i; } } return -1; };
+  const iEmi = find(['FECHA','EMISION'],['EMISION']);
+  const iAut = find(['FECHA','AUTORIZ'],['AUTORIZ','FECHA']);
+  const iSerie = find(['SERIE'],['NUMERO','COMPROBANTE'],['COMPROBANTE']);
+  const iTipo = find(['TIPO','COMPROBANTE'],['TIPO']);
+  const iRazon = find(['RAZON','RECEPTOR'],['RAZON','COMPRADOR'],['RAZON'],['CLIENTE']);
+  const iTotal = find(['IMPORTE','TOTAL'],['VALOR','TOTAL'],['TOTAL']);
+  const iAutNum = find(['NUMERO','AUTORIZ'],['AUTORIZACION']);
+  if(iEmi<0 || iAut<0) return {rows:[], err:'no encontré columnas de fecha (emisión/autorización). Encabezados: '+H.join(' | ')};
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const c=lines[i].split(sep);
+    if(c.length<2) continue;
+    const eN=fechaNum(c[iEmi]), aN=iAut>=0?fechaNum(c[iAut]):0;
+    const tipo=(iTipo>=0?c[iTipo]:'')||'', serie=(iSerie>=0?c[iSerie]:'')||'';
+    rows.push({
+      tipo:String(tipo).trim(), serie:String(serie).trim(),
+      cliente:(iRazon>=0?String(c[iRazon]||'').trim():''),
+      emiN:eN, autN:aN, total:(iTotal>=0?toNum(c[iTotal]):0),
+      autNum:(iAutNum>=0?String(c[iAutNum]||'').trim():'')
+    });
+  }
+  return {rows, err:''};
+}
+
+function clasifica(d){
+  if(!d.autN) return 'sin';
+  return d.emiN===d.autN ? 'ok' : 'dif';
+}
+
+$('dz').onclick=()=>$('file').click();
+$('dz').ondragover=e=>{e.preventDefault();$('dz').classList.add('over');};
+$('dz').ondragleave=()=>$('dz').classList.remove('over');
+$('dz').ondrop=e=>{e.preventDefault();$('dz').classList.remove('over');handleFiles(e.dataTransfer.files);};
+$('file').onchange=e=>handleFiles(e.target.files);
+
+function handleFiles(files){
+  const list=[...files].filter(f=>/\.(txt|csv)$/i.test(f.name));
+  if(!list.length){ status('Selecciona archivos .txt del SRI.',true); return; }
+  status('Leyendo '+list.length+' archivo(s)…');
+  docs=[]; let pend=list.length, errs=[];
+  list.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      const res=parseTXT(ev.target.result, f.name);
+      if(res.err) errs.push(f.name+': '+res.err);
+      docs=docs.concat(res.rows);
+      if(--pend===0) finish(errs);
+    };
+    r.onerror=()=>{ errs.push(f.name+': no se pudo leer'); if(--pend===0) finish(errs); };
+    r.readAsText(f,'utf-8');
+  });
+}
+function finish(errs){
+  if(!docs.length){ status((errs[0]||'No se leyeron documentos.'),true); $('result').style.display='none'; return; }
+  const dif=docs.filter(d=>clasifica(d)==='dif').length, ok=docs.filter(d=>clasifica(d)==='ok').length, sin=docs.filter(d=>clasifica(d)==='sin').length;
+  $('kTot').textContent=docs.length; $('kOk').textContent=ok; $('kDif').textContent=dif; $('kSin').textContent=sin;
+  $('cDif').textContent='('+dif+')'; $('cAll').textContent='('+docs.length+')';
+  $('result').style.display='block';
+  status('✓ '+docs.length+' documentos leídos'+(errs.length?(' · '+errs.length+' con aviso'):'')+'.'+(errs.length?(' '+errs[0]):''), errs.length&&!docs.length);
+  render();
+}
+function render(){
+  const rows=docs.filter(d=> filt==='all'?true : clasifica(d)===filt);
+  rows.sort((a,b)=> (b.emiN||0)-(a.emiN||0));
+  $('tbody').innerHTML=rows.map((d,i)=>{
+    const cls=clasifica(d); const dd=difDias(d.emiN,d.autN);
+    const est = cls==='ok'?'<span class="pill p-ok">Mismo día</span>' : cls==='dif'?('<span class="pill p-warn">'+(dd!=null?(dd>0?'+'+dd+'d':dd+'d'):'Otro día')+'</span>') : '<span class="pill p-red">Sin autorización</span>';
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${(d.tipo||'')} <b style="font-family:var(--mono)">${d.serie||'—'}</b></td>
+      <td class="raz" title="${(d.cliente||'').replace(/"/g,'')}">${(d.cliente||'—').slice(0,40)}</td>
+      <td>${fechaTxt(d.emiN)}</td>
+      <td>${d.autN?fechaTxt(d.autN):'—'}</td>
+      <td class="num">${dd!=null?dd:'—'}</td>
+      <td class="num">${fmt$(d.total)}</td>
+      <td>${est}</td></tr>`;
+  }).join('');
+  $('empty').style.display=rows.length?'none':'block';
+}
+document.querySelectorAll('.tab').forEach(t=>{ t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t)); filt=t.dataset.f; render(); }; });
+
+$('btnExport').onclick=()=>{
+  if(typeof XLSX==='undefined'||!docs.length){ return; }
+  const rows=docs.filter(d=> filt==='all'?true : clasifica(d)===filt);
+  const data=[['Tipo','Comprobante','Cliente','Fecha emisión','Fecha autorización','Días diferencia','Total','N° autorización','Estado']];
+  rows.forEach(d=>{ const cls=clasifica(d),dd=difDias(d.emiN,d.autN);
+    data.push([d.tipo,d.serie,d.cliente,fechaTxt(d.emiN),d.autN?fechaTxt(d.autN):'',dd!=null?dd:'',d.total,d.autNum,cls==='ok'?'Mismo día':cls==='dif'?'Otro día':'Sin autorización']); });
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:12},{wch:20},{wch:34},{wch:14},{wch:16},{wch:8},{wch:12},{wch:40},{wch:16}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Autorizaciones');
+  const d=new Date(),p=n=>('0'+n).slice(-2);
+  XLSX.writeFile(wb,'autorizaciones_sri_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.xlsx');
+};
+</script>
+</body>
+</html>
