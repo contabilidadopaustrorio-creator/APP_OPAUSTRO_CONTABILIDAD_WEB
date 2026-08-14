@@ -1,15 +1,13 @@
 {
     "app": "OPAUSTRO Contabilidad",
-    "version": "1.0.0",
-    "label": "OPAUSTRO Contabilidad v1.0.0",
+    "version": "1.0.1",
+    "label": "OPAUSTRO Contabilidad v1.0.1",
     "channel": "oficial",
     "publishedAt": "2026-08-14",
     "notes": [
-        "Lanzamiento de la app de Contabilidad: Control de gastos, Conciliador SRI, Conciliador de retenciones y Control de vacaciones.",
-        "Vacaciones: nómina, provisión mensual IESS, días tomados, salidas/liquidación y planificación con calendario.",
-        "Nuevo login empresarial y colores acoplados en todos los módulos."
+        "Ajustes menores de módulos."
     ],
-    "releaseKey": "1.0.0",
+    "releaseKey": "1.0.1",
     "forceUpdate": false,
     "rollback": false
 }
