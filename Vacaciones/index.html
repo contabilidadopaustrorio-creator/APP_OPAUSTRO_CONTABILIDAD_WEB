@@ -1173,6 +1173,15 @@ $('pCupoSave').onclick=async()=>{
 };
 let dragCi=null;
 $('pEmpList').addEventListener('dragstart',ev=>{ const chip=ev.target.closest('.emp-chip[draggable="true"]'); if(!chip){ ev.preventDefault(); return; } dragCi=chip.dataset.ci; try{ ev.dataTransfer.setData('text/plain',dragCi); ev.dataTransfer.effectAllowed='copy'; }catch(e){} });
+$('pEmpList').addEventListener('click',ev=>{
+  const chip=ev.target.closest('.emp-chip'); if(!chip) return;
+  const r=empByCi(chip.dataset.ci); if(!r) return;
+  const planes=planList.filter(p=>ck(p.ci)===ck(chip.dataset.ci)).sort((a,b)=>(a.dN||0)-(b.dN||0));
+  $('pStatus').classList.remove('err');
+  if(!planes.length){ $('pStatus').textContent=r.nombre+': sin planificación aún. Arrástralo a un día para planificar.'; return; }
+  $('pStatus').innerHTML='📅 <b>'+r.nombre+'</b>: '+planes.map(p=>p.desde+' → '+p.hasta+' ('+fmtD(p.dias)+'d)').join(' · ');
+  const pd=parseDMY(planes[0].desde); if(pd){ planMonth={y:pd.yy,m:pd.mm-1}; renderCalendar(); } // saltar a ese mes
+});
 $('pCal').addEventListener('dragover',ev=>{ if(ev.target.closest('.cal-cell[data-date]')){ ev.preventDefault(); try{ ev.dataTransfer.dropEffect='copy'; }catch(e){} } });
 $('pCal').addEventListener('drop',ev=>{ const cell=ev.target.closest('.cal-cell[data-date]'); if(!cell) return; ev.preventDefault(); let ci=dragCi; try{ ci=ci||ev.dataTransfer.getData('text/plain'); }catch(e){} dragCi=null; if(ci) planificarEn(ci, cell.dataset.date); });
 $('pListaBody').addEventListener('click',async ev=>{
