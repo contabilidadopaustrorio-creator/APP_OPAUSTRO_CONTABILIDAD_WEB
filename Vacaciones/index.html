@@ -742,11 +742,18 @@ function fetchPlanes(){
 }
 function planificadoDe(ci){ return planMap[ck(ci)]||0; }
 function disponiblePlan(r){ return Math.round((Math.max(0,r.dias2025)-planificadoDe(r.ci))*100)/100; }
+function fillPlanCargos(){
+  const dep=$('pDep').value;
+  const cargos=[...new Set(activosBase().filter(r=>!dep||r.depto===dep).map(r=>r.cargo))].filter(x=>x&&x!=='—').sort();
+  const el=$('pCar'); const cur=el.value;
+  el.innerHTML='<option value="">Todos</option>'+cargos.map(v=>`<option>${v}</option>`).join('');
+  el.value=cargos.indexOf(cur)>=0?cur:''; // si el cargo ya no pertenece al depto, resetea
+}
 function fillPlan(){
   const deptos=[...new Set(activosBase().map(r=>r.depto))].filter(x=>x&&x!=='—').sort();
-  const cargos=[...new Set(activosBase().map(r=>r.cargo))].filter(x=>x&&x!=='—').sort();
-  const setOpts=(id,vals)=>{ const el=$(id); const cur=el.value; el.innerHTML='<option value="">Todos</option>'+vals.map(v=>`<option>${v}</option>`).join(''); el.value=cur; };
-  setOpts('pDep',deptos); setOpts('pCar',cargos);
+  const el=$('pDep'); const cur=el.value;
+  el.innerHTML='<option value="">Todos</option>'+deptos.map(v=>`<option>${v}</option>`).join(''); el.value=cur;
+  fillPlanCargos();
   renderPlanUI(); renderCupoInfo();
 }
 function planFiltrados(){
@@ -1154,7 +1161,7 @@ $('sListaBody').addEventListener('click',async ev=>{
 
 // --- Planificación (calendario) ---
 planMonth={y:new Date().getFullYear(), m:new Date().getMonth()};
-$('pDep').onchange=()=>{ renderPlanUI(); renderCupoInfo(); };
+$('pDep').onchange=()=>{ fillPlanCargos(); renderPlanUI(); renderCupoInfo(); };
 $('pCar').onchange=()=>{ renderPlanUI(); renderCupoInfo(); };
 $('pPrev').onclick=()=>{ planMonth.m--; if(planMonth.m<0){ planMonth.m=11; planMonth.y--; } renderCalendar(); };
 $('pNext').onclick=()=>{ planMonth.m++; if(planMonth.m>11){ planMonth.m=0; planMonth.y++; } renderCalendar(); };
