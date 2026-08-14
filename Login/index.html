@@ -3187,6 +3187,7 @@
     }
 
     function preferredInitialModule(session, visibleModules) {
+      if (visibleModules.includes("ControlGastos")) return "ControlGastos"; // pantalla inicial: Control de gastos
       const normalized = normalizeRoleName(session && (session.role || session.rol));
       if ((normalized === "VENDEDORES_ICE" || normalized === "VENDEDOR_ICE" || normalized === "ICE") && visibleModules.includes("IceEscaneo")) return "IceEscaneo";
       if ((normalized === "ADMIN" || normalized === "ADMINISTRADOR" || normalized === "GERENCIA" || normalized === "GERENTE") && visibleModules.includes("VentasOperativo")) return "VentasOperativo";
@@ -3544,7 +3545,7 @@
       const preferredModule = preferredInitialModule(session, visibleModules);
       const firstModule = visibleModules.includes(hashModule)
         ? hashModule
-        : (visibleModules.includes(savedModule) ? savedModule : (preferredModule || visibleModules[0]));
+        : (preferredModule || (visibleModules.includes(savedModule) ? savedModule : visibleModules[0]));
       if (firstModule) activateModule(firstModule, session, false);
       if (firstModule) history.replaceState({ moduleName: firstModule }, "", "#" + encodeURIComponent(firstModule));
       resetIdleTimer();

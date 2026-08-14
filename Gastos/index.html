@@ -188,6 +188,12 @@ footer{text-align:center;padding:1.5rem;font-size:11px;color:var(--hint);border-
 </style>
 </head>
 <body>
+<script>try{if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');}catch(e){}</script>
+<style>
+  html.embed .hdr{display:none!important}
+  html.embed .sync-bar{position:static;border-radius:0}
+  html.embed body{background:#f4f6f9}
+</style>
 
 <div id="sync-bar" class="sync-bar">⏳ Cargando datos desde la nube...</div>
 
