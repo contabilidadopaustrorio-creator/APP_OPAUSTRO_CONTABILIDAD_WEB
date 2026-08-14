@@ -430,8 +430,11 @@ function applyAcum(){
   base.forEach(r=>{
     const a=acumMap[ck(r.ci)]||{p2025:0,p2026:0};
     const t=tomadosMap[ck(r.ci)]||{t2025:0,t2026:0};
-    const g2025=(r.diasBase-r.provBase)+(a.p2025||0); // provisionado 2025
-    const g2026=r.provBase+(a.p2026||0);              // provisionado 2026
+    const pf=parseDMY(r.fecha); const ing2026=(pf&&pf.yy>=2026); // ingresó en 2026 → no tiene arrastre 2025
+    const g2025 = ing2026 ? (a.p2025||0)               // sin arrastre; todo su saldo base va al 2026
+                          : ((r.diasBase-r.provBase)+(a.p2025||0));
+    const g2026 = ing2026 ? (r.diasBase+(a.p2026||0))  // su saldo base es 2026
+                          : (r.provBase+(a.p2026||0));
     r.g2026=Math.round(g2026*100)/100;                // provisión bruta 2026 (para KPI)
     r.tomados=Math.round(((t.t2025||0)+(t.t2026||0))*100)/100;
     r.dias2025=Math.round((g2025-(t.t2025||0))*100)/100; // saldo 2025 (tras tomados)
